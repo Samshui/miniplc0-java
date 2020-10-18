@@ -1,0 +1,6 @@
+begin
+    var a = 1;
+    var this123 = 3;
+    var b = 2;
+    print(a);
+end

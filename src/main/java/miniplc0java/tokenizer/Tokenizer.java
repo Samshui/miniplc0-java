@@ -2,6 +2,10 @@ package miniplc0java.tokenizer;
 
 import miniplc0java.error.TokenizeError;
 import miniplc0java.error.ErrorCode;
+import miniplc0java.util.Pos;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Tokenizer {
 
@@ -47,7 +51,27 @@ public class Tokenizer {
         // 解析成功则返回无符号整数类型的token，否则返回编译错误
         //
         // Token 的 Value 应填写数字的值
-        throw new Error("Not implemented");
+        Pos startPos,endPos;
+        StringBuilder numStorage = new StringBuilder();
+
+        numStorage.append(it.peekChar());
+        it.nextChar();
+
+        // 此时it指向第一位数字，在while退出是it指向最后一个isDigit
+        startPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+        char nextCH;
+        while (Character.isDigit(nextCH = it.peekChar())) {
+            numStorage.append(nextCH);
+            it.nextChar();
+        }
+
+        it.nextChar();
+        endPos = new Pos(it.currentPos().row,it.currentPos().col);
+        Integer num = new Integer(numStorage.toString());
+
+        Token token = new Token(TokenType.Uint, num, startPos, endPos);
+        return token;
     }
 
     private Token lexIdentOrKeyword() throws TokenizeError {
@@ -60,28 +84,79 @@ public class Tokenizer {
         // -- 否则，返回标识符
         //
         // Token 的 Value 应填写标识符或关键字的字符串
-        throw new Error("Not implemented");
+        Pos startPos,endPos;
+        StringBuilder storage = new StringBuilder();
+
+        storage.append(it.peekChar());
+        it.nextChar();
+
+        // 此时it指向第一位字母，在while退出是it指向最后一个isDigit或isLetter
+        startPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+        char nextCH;
+        while ( Character.isDigit(nextCH = it.peekChar()) ||
+                Character.isLetter(nextCH = it.peekChar())) {
+            storage.append(nextCH);
+            it.nextChar();
+        }
+
+        it.nextChar();
+        endPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+        TokenType tokenType = searchKeywordTable(storage.toString());
+        Token token = new Token(tokenType, storage, startPos, endPos);
+        return token;
+    }
+
+    // 查找关键词表
+    private TokenType searchKeywordTable(String str) {
+        ArrayList<TokenType> keywordArray = new ArrayList<TokenType>(Arrays.asList(
+                TokenType.Begin,
+                TokenType.End,
+                TokenType.Var,
+                TokenType.Const,
+                TokenType.Print,
+                TokenType.Ident
+        ));
+
+        ArrayList<String> keyWordTable = new ArrayList<String>(Arrays.asList(
+                "BEGIN",
+                "END",
+                "VAR",
+                "CONST",
+                "PRINT",
+                str
+        ));
+
+        for (String s:keyWordTable) {
+            if (str.equals(s)) {
+                return keywordArray.get(keyWordTable.indexOf(s));
+            }
+        }
+
+        // 无法匹配报异常
+        return TokenType.None;
+        // throw new Error("No match could be found in keyword table!");
     }
 
     private Token lexOperatorOrUnknown() throws TokenizeError {
         switch (it.nextChar()) {
             case '+':
                 return new Token(TokenType.Plus, '+', it.previousPos(), it.currentPos());
-
             case '-':
-                // 填入返回语句
-                throw new Error("Not implemented");
-
+                return new Token(TokenType.Minus, '-', it.previousPos(), it.currentPos());
             case '*':
-                // 填入返回语句
-                throw new Error("Not implemented");
-
+                return new Token(TokenType.Mult, '*', it.previousPos(), it.currentPos());
             case '/':
-                // 填入返回语句
-                throw new Error("Not implemented");
-
-            // 填入更多状态和返回语句
-
+                return new Token(TokenType.Div, '/', it.previousPos(), it.currentPos());
+            case '=':
+                return new Token(TokenType.Equal, '=', it.previousPos(), it.currentPos());
+            case ';':
+                return new Token(TokenType.Semicolon, ';', it.previousPos(), it.currentPos());
+            case '(':
+                return new Token(TokenType.LParen, '(', it.previousPos(), it.currentPos());
+            case ')':
+                return new Token(TokenType.RParen, ')', it.previousPos(), it.currentPos());
             default:
                 // 不认识这个输入，摸了
                 throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
