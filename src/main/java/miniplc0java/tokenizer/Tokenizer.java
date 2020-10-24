@@ -55,10 +55,9 @@ public class Tokenizer {
         StringBuilder numStorage = new StringBuilder();
 
         numStorage.append(it.peekChar());
-        it.nextChar();
 
-        // 此时it指向第一位数字，在while退出是it指向最后一个isDigit
         startPos = new Pos(it.currentPos().row,it.currentPos().col);
+        it.nextChar();
 
         char nextCH;
         while (Character.isDigit(nextCH = it.peekChar())) {
@@ -88,10 +87,9 @@ public class Tokenizer {
         StringBuilder storage = new StringBuilder();
 
         storage.append(it.peekChar());
-        it.nextChar();
 
-        // 此时it指向第一位字母，在while退出是it指向最后一个isDigit或isLetter
         startPos = new Pos(it.currentPos().row,it.currentPos().col);
+        it.nextChar();
 
         char nextCH;
         while ( Character.isDigit(nextCH = it.peekChar()) ||
