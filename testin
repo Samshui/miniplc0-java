@@ -1,5 +1,7 @@
 begin
-	var a = 2;
-	var b = 3;
-	var c = a + b;
+	const a = 1;
+	var b = 10;
+	var c = a - b;
+	var d = a * b;
+	var e = a + b;
 end
