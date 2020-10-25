@@ -4,4 +4,5 @@ begin
 	var c = a - b;
 	var d = a * b;
 	var e = a + b;
+	print(e);
 end

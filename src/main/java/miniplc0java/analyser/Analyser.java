@@ -252,12 +252,11 @@ public final class Analyser {
             boolean initialized = false;
 
             // 下个 token 是等于号吗？如果是的话分析初始化
-            if (nextIf(TokenType.Equal) != null) {
-                analyseExpression();
-                initialized = true;
-            }
-
             // 分析初始化的表达式
+            if (nextIf(TokenType.Equal) != null) {
+                initialized = true;
+                analyseExpression();
+            }
 
             // 分号
             expect(TokenType.Semicolon);
@@ -284,17 +283,10 @@ public final class Analyser {
                 // 调用相应的分析函数
                 // 如果遇到其他非终结符的 FIRST 集呢？
                 /* 赋值语句 -> 标识符 '=' 表达式 ';' */
-                next();
-                expect(TokenType.Equal);
-                analyseExpression();
-                expect(TokenType.Semicolon);
+                analyseAssignmentStatement();
             } else if (peeked.getTokenType() == TokenType.Print) {
                 /* 输出语句 -> 'print' '(' 表达式 ')' ';' */
-                next();
-                expect(TokenType.LParen);
-                analyseExpression();
-                expect(TokenType.RParen);
-                expect(TokenType.Semicolon);
+                analyseOutputStatement();
             } else if (peeked.getTokenType() == TokenType.Semicolon) {
                 next();
             } else {
