@@ -52,20 +52,20 @@ public class Tokenizer {
         //
         // Token 的 Value 应填写数字的值
         Pos startPos,endPos;
-        StringBuilder numStorage = new StringBuilder();
+        String numStorage = new String();
 
-        numStorage.append(it.peekChar());
+        numStorage += it.peekChar();
 
         startPos = new Pos(it.currentPos().row,it.currentPos().col);
         it.nextChar();
 
         char nextCH;
         while (Character.isDigit(nextCH = it.peekChar())) {
-            numStorage.append(nextCH);
+            numStorage += nextCH;
             it.nextChar();
         }
 
-        it.nextChar();
+        // it.nextChar();
         endPos = new Pos(it.currentPos().row,it.currentPos().col);
         Integer num = new Integer(numStorage.toString());
 
@@ -84,9 +84,9 @@ public class Tokenizer {
         //
         // Token 的 Value 应填写标识符或关键字的字符串
         Pos startPos,endPos;
-        StringBuilder storage = new StringBuilder();
+        String storage = new String();
 
-        storage.append(it.peekChar());
+        storage += it.peekChar();
 
         startPos = new Pos(it.currentPos().row,it.currentPos().col);
         it.nextChar();
@@ -94,11 +94,11 @@ public class Tokenizer {
         char nextCH;
         while ( Character.isDigit(nextCH = it.peekChar()) ||
                 Character.isLetter(nextCH = it.peekChar())) {
-            storage.append(nextCH);
+            storage += nextCH;
             it.nextChar();
         }
 
-        it.nextChar();
+        // it.nextChar();
         endPos = new Pos(it.currentPos().row,it.currentPos().col);
 
         TokenType tokenType = searchKeywordTable(storage.toString());
@@ -118,11 +118,11 @@ public class Tokenizer {
         ));
 
         ArrayList<String> keyWordTable = new ArrayList<String>(Arrays.asList(
-                "BEGIN",
-                "END",
-                "VAR",
-                "CONST",
-                "PRINT",
+                "begin",
+                "end",
+                "var",
+                "const",
+                "print",
                 str
         ));
 

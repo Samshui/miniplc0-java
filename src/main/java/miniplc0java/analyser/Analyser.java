@@ -266,21 +266,27 @@ public final class Analyser {
         while (nextIf(TokenType.Var) != null) {
             // 变量声明语句 -> 'var' 变量名 ('=' 表达式)? ';'
 
-            // 变量名
+            // 变量名（标识符）
+			var ident = expect(TokenType.Ident);
+			// TODO:要不要判断该变量名已经在符号表里面了？
 
-            // 变量初始化了吗
+            // 变量初始化了吗（还没）
             boolean initialized = false;
 
             // 下个 token 是等于号吗？如果是的话分析初始化
-
-            // 分析初始化的表达式
+			if (nextIf(TokenType.Equal) != null) {
+				// 分析初始化的表达式
+				analyseExpression();
+				initialized = true;
+			}
 
             // 分号
+            next();
             expect(TokenType.Semicolon);
 
             // 加入符号表，请填写名字和当前位置（报错用）
-            String name = /* 名字 */ null;
-            addSymbol(name, false, false, /* 当前位置 */ null);
+            String name = (String) ident.getValue();
+            addSymbol(name, initialized, false, ident.getStartPos());
 
             // 如果没有初始化的话在栈里推入一个初始值
             if (!initialized) {
@@ -296,7 +302,6 @@ public final class Analyser {
      * <输出语句> ::= 'print' '(' <表达式> ')' ';'
      * <空语句> ::= ';'
      */
-    // TODO
     private void analyseStatementSequence() throws CompileError {
         // 语句序列 -> 语句*
         // 语句 -> 赋值语句 | 输出语句 | 空语句
@@ -304,11 +309,17 @@ public final class Analyser {
         while (true) {
             // 如果下一个 token 是……
             var peeked = peek();
+
             if (peeked.getTokenType() == TokenType.Ident) {
-                // 调用相应的分析函数
-                // 如果遇到其他非终结符的 FIRST 集呢？
-            } else {
-                // 都不是，摸了
+				// 赋值语句
+                analyseAssignmentStatement();
+            } else if (peeked.getTokenType() == TokenType.Print) {
+            	// 输出语句
+				analyseOutputStatement();
+			} else if (peeked.getTokenType() == TokenType.Semicolon) {
+            	// 空语句
+			} else {
+            	// 助教说摸了，但是要不要输出错误啊~
                 break;
             }
         }
@@ -413,6 +424,7 @@ public final class Analyser {
         expect(TokenType.LParen);
 
         analyseExpression();
+        next();
 
         expect(TokenType.RParen);
         expect(TokenType.Semicolon);
