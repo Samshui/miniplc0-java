@@ -37,6 +37,10 @@ public class Tokenizer {
 			return lexUIntorFloat();
 		} else if (Character.isAlphabetic(peek) || peek == '_') {
 			return lexIdentOrKeyword();
+		} else if (peek == '\"') {
+			return lexStringLiteral();
+		} else if (peek == '\'') {
+			return lexCharLiteral();
 		} else {
 			return lexOperatorOrUnknown();
 		}
@@ -65,32 +69,18 @@ public class Tokenizer {
 
 		/* float */
 		if (nextCH == '.') {
+			numStorage += nextCH;
+			it.nextChar();
 
-			numStorage += ".";
-			int times = 1;			// 最终倍数
-
-			// 非科学计数法类：3.14159
-			while (Character.isDigit(nextCH = it.peekChar())) {
+			while (Character.isDigit(nextCH = it.peekChar()) ||
+					nextCH == 'e' ||
+					nextCH == 'E') {
 				numStorage += nextCH;
 				it.nextChar();
 			}
 
-			// 科学计数法类： 3.12e4
-			if (nextCH == 'e' || nextCH == 'E') {
-				String SN = new String();
-				it.nextChar();
-
-				while (Character.isDigit(nextCH = it.peekChar())) {
-					SN += nextCH;
-					it.nextChar();
-				}
-
-				Integer sn = new Integer(SN);
-				times = (int) (times * Math.pow(10, sn));
-			}
-
 			endPos = new Pos(it.currentPos().row,it.currentPos().col);
-			Float float_num = new Float(numStorage) * times;
+			Double float_num = new Double(numStorage);
 
 			Token token = new Token(TokenType.FLOAT_LITERAL, float_num, startPos, endPos);
 			return token;
@@ -233,6 +223,7 @@ public class Tokenizer {
 			case '*':
 				return new Token(TokenType.MUL, "*", it.previousPos(), it.currentPos());
 			case '/':
+				// TODO
 				if (it.peekChar() == '/') {
 					skipComment();
 				} else {
@@ -279,6 +270,94 @@ public class Tokenizer {
 			default:
 				// 不认识这个输入，摸了
 				throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
+		}
+	}
+
+	/**
+	 * 读字符串常量
+	 *
+	 * @return
+	 * @throws TokenizeError
+	 */
+	private Token lexStringLiteral() throws TokenizeError {
+		Pos startPos,endPos;
+		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+		it.nextChar();
+
+		char nextCH;
+		String storage = new String();
+
+		while ((nextCH = it.peekChar()) != '"' ) {
+			// 字符串常量的两头引号对不上号
+			if (it.isEOF()) {
+				System.exit(1);
+			}
+
+			// 判断转义序列 escape_sequence -> '\' [\\"'nrt]
+			if (nextCH == '\\') {
+				it.nextChar();
+
+				if ((nextCH = it.peekChar()) == '\\') storage += '\\';
+				else if (nextCH == '\'') storage += '\'';
+				else if (nextCH == '\"') storage += '\"';
+				else if (nextCH == 'n') storage += '\n';
+				else if (nextCH == 't') storage += '\t';
+				else if (nextCH == 'r') storage += '\r';
+				else System.exit(1);
+			} else {
+				storage += nextCH;
+			}
+
+			it.nextChar();
+		}
+
+		// 跳过尾部的“
+		it.nextChar();
+		endPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+		return new Token(TokenType.STRING_LITERAL, storage, startPos, endPos);
+	}
+
+	/**
+	 * 读字符常量
+	 *
+	 * @return
+	 * @throws TokenizeError
+	 */
+	private Token lexCharLiteral() throws TokenizeError {
+		Pos startPos,endPos;
+		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+
+		it.nextChar();
+		Character storage = null;
+
+		char nextCH;
+		if (it.peekChar() == '\\') {
+			it.nextChar();
+
+			if ((nextCH = it.peekChar()) == '\\') storage = '\\';
+			else if (nextCH == '\'') storage = '\'';
+			else if (nextCH == '\"') storage = '\"';
+			else if (nextCH == 'n') storage = '\n';
+			else if (nextCH == 't') storage = '\t';
+			else if (nextCH == 'r') storage = '\r';
+			else System.exit(1);
+
+			it.nextChar();
+		} else if (it.peekChar() != '\''){
+			storage = it.peekChar();
+			it.nextChar();
+		} else System.exit(1);
+
+		if (it.peekChar() == '\'') {
+			it.nextChar();
+			endPos = new Pos(it.currentPos().row,it.currentPos().col);
+			return new Token(TokenType.CHAR_LITERAL, storage, startPos, endPos);
+		} else {
+			System.exit(1);
+			// 此处如果不返回会报错
+			return null;
 		}
 	}
 

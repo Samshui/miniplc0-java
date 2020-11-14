@@ -1,8 +1,0 @@
-begin
-	const a = 1;
-	var b = 10;
-	var c = a - b;
-	var d = a * b;
-	var e = a + b;
-	print(e);
-end
