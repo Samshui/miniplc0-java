@@ -3,33 +3,33 @@ package c0.error;
 import c0.util.Pos;
 
 public class AnalyzeError extends CompileError {
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    ErrorCode code;
-    Pos pos;
+	ErrorCode code;
+	Pos pos;
 
-    @Override
-    public ErrorCode getErr() {
-        return code;
-    }
+	/**
+	 * @param errorToken
+	 * @param code
+	 * @param pos
+	 */
+	public AnalyzeError(ErrorCode code, Pos pos) {
+		this.code = code;
+		this.pos = pos;
+	}
 
-    @Override
-    public Pos getPos() {
-        return pos;
-    }
+	@Override
+	public ErrorCode getErr() {
+		return code;
+	}
 
-    /**
-     * @param errorToken
-     * @param code
-     * @param pos
-     */
-    public AnalyzeError(ErrorCode code, Pos pos) {
-        this.code = code;
-        this.pos = pos;
-    }
+	@Override
+	public Pos getPos() {
+		return pos;
+	}
 
-    @Override
-    public String toString() {
-        return new StringBuilder().append("Analyze Error: ").append(code).append(", at: ").append(pos).toString();
-    }
+	@Override
+	public String toString() {
+		return new StringBuilder().append("Analyze Error: ").append(code).append(", at: ").append(pos).toString();
+	}
 }

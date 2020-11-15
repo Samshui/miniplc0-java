@@ -16,6 +16,7 @@ public class Tokenizer {
 	}
 
 	// 这里本来是想实现 Iterator<Token> 的，但是 Iterator 不允许抛异常，于是就这样了
+
 	/**
 	 * 获取下一个 Token
 	 *
@@ -53,12 +54,12 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexUIntorFloat() throws TokenizeError {
-		Pos startPos,endPos;
+		Pos startPos, endPos;
 		String numStorage = new String();
 
 		numStorage += it.peekChar();
 
-		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+		startPos = new Pos(it.currentPos().row, it.currentPos().col);
 		it.nextChar();
 
 		char nextCH;
@@ -79,7 +80,7 @@ public class Tokenizer {
 				it.nextChar();
 			}
 
-			endPos = new Pos(it.currentPos().row,it.currentPos().col);
+			endPos = new Pos(it.currentPos().row, it.currentPos().col);
 			Double float_num = new Double(numStorage);
 
 			Token token = new Token(TokenType.FLOAT_LITERAL, float_num, startPos, endPos);
@@ -87,7 +88,7 @@ public class Tokenizer {
 		}
 		/* uint */
 		else {
-			endPos = new Pos(it.currentPos().row,it.currentPos().col);
+			endPos = new Pos(it.currentPos().row, it.currentPos().col);
 			Integer int_num = new Integer(numStorage);
 
 			Token token = new Token(TokenType.UINT_LITERAL, int_num, startPos, endPos);
@@ -111,15 +112,20 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexIdentOrKeyword() throws TokenizeError {
-		Pos startPos,endPos;
+		Pos startPos, endPos;
 		String storage = new String();
-		boolean isIdent = false;		// 是否为Ident
+		boolean isIdent = false;        // 是否为Ident
 
 		if (it.peekChar() == '_') isIdent = true;
 		storage += it.peekChar();
 
-		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+		startPos = new Pos(it.currentPos().row, it.currentPos().col);
 		it.nextChar();
+
+		// 不允许 _1as 出现
+		if (Character.isDigit(it.peekChar())) {
+			throw new TokenizeError(ErrorCode.InvalidIdentifier, it.previousPos());
+		}
 
 		char nextCH;
 		// 最大吞噬
@@ -134,11 +140,10 @@ public class Tokenizer {
 				isIdent = true;
 				storage += nextCH;
 				it.nextChar();
-			}
-			else break;
+			} else break;
 		}
 
-		endPos = new Pos(it.currentPos().row,it.currentPos().col);
+		endPos = new Pos(it.currentPos().row, it.currentPos().col);
 
 		if (isIdent) {
 			Token token = new Token(TokenType.IDENT, storage, startPos, endPos);
@@ -148,7 +153,7 @@ public class Tokenizer {
 			if (tokenType == TokenType.STR) {
 				Token token = new Token(TokenType.IDENT, storage, startPos, endPos);
 				return token;
-			} else if (tokenType != TokenType.None){
+			} else if (tokenType != TokenType.None) {
 				Token token = new Token(tokenType, storage, startPos, endPos);
 				return token;
 			} else {
@@ -194,7 +199,7 @@ public class Tokenizer {
 				str
 		));
 
-		for (String s:keyWordTable) {
+		for (String s : keyWordTable) {
 			if (str.equals(s)) {
 				return keywordArray.get(keyWordTable.indexOf(s));
 			}
@@ -280,18 +285,18 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexStringLiteral() throws TokenizeError {
-		Pos startPos,endPos;
-		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+		Pos startPos, endPos;
+		startPos = new Pos(it.currentPos().row, it.currentPos().col);
 
 		it.nextChar();
 
 		char nextCH;
 		String storage = new String();
 
-		while ((nextCH = it.peekChar()) != '"' ) {
+		while ((nextCH = it.peekChar()) != '"') {
 			// 字符串常量的两头引号对不上号
 			if (it.isEOF()) {
-				System.exit(1);
+				throw new TokenizeError(ErrorCode.IncompleteString, it.previousPos());
 			}
 
 			// 判断转义序列 escape_sequence -> '\' [\\"'nrt]
@@ -304,7 +309,7 @@ public class Tokenizer {
 				else if (nextCH == 'n') storage += '\n';
 				else if (nextCH == 't') storage += '\t';
 				else if (nextCH == 'r') storage += '\r';
-				else System.exit(1);
+				else throw new TokenizeError(ErrorCode.InvalidEscapeSequence, it.previousPos());
 			} else {
 				storage += nextCH;
 			}
@@ -314,7 +319,7 @@ public class Tokenizer {
 
 		// 跳过尾部的“
 		it.nextChar();
-		endPos = new Pos(it.currentPos().row,it.currentPos().col);
+		endPos = new Pos(it.currentPos().row, it.currentPos().col);
 
 		return new Token(TokenType.STRING_LITERAL, storage, startPos, endPos);
 	}
@@ -326,8 +331,8 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexCharLiteral() throws TokenizeError {
-		Pos startPos,endPos;
-		startPos = new Pos(it.currentPos().row,it.currentPos().col);
+		Pos startPos, endPos;
+		startPos = new Pos(it.currentPos().row, it.currentPos().col);
 
 		it.nextChar();
 		Character storage = null;
@@ -342,22 +347,20 @@ public class Tokenizer {
 			else if (nextCH == 'n') storage = '\n';
 			else if (nextCH == 't') storage = '\t';
 			else if (nextCH == 'r') storage = '\r';
-			else System.exit(1);
+			else throw new TokenizeError(ErrorCode.InvalidEscapeSequence, startPos);
 
 			it.nextChar();
-		} else if (it.peekChar() != '\''){
+		} else if (it.peekChar() != '\'') {
 			storage = it.peekChar();
 			it.nextChar();
-		} else System.exit(1);
+		} else throw new TokenizeError(ErrorCode.InvalidChar, it.previousPos());
 
 		if (it.peekChar() == '\'') {
 			it.nextChar();
-			endPos = new Pos(it.currentPos().row,it.currentPos().col);
+			endPos = new Pos(it.currentPos().row, it.currentPos().col);
 			return new Token(TokenType.CHAR_LITERAL, storage, startPos, endPos);
 		} else {
-			System.exit(1);
-			// 此处如果不返回会报错
-			return null;
+			throw new TokenizeError(ErrorCode.IncompleteChar, it.previousPos());
 		}
 	}
 

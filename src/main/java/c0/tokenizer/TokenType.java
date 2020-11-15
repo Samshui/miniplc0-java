@@ -1,10 +1,14 @@
 package c0.tokenizer;
 
 public enum TokenType {
-	/** 空 */
+	/**
+	 * 空
+	 */
 	None,
 
-	/** 关键字 */
+	/**
+	 * 关键字
+	 */
 	FN_KW,      // fn
 	LET_KW,     // let
 	CONST_KW,   // const
@@ -30,7 +34,9 @@ public enum TokenType {
         char_regular_char -> [^'\\]
         CHAR_LITERAL -> '\'' (char_regular_char | escape_sequence)* '\''
      */
-	/** 字面量 */
+	/**
+	 * 字面量
+	 */
 	UINT_LITERAL,   // digit+
 	STRING_LITERAL, // '"' (string_regular_char | escape_sequence)* '"'
 	FLOAT_LITERAL,  // digit+ '.' digit+ ([eE] digit+)?
@@ -39,10 +45,14 @@ public enum TokenType {
 	/** 真值 */
 	// 所有非 0 的布尔值都被视为 true，而 0 被视为 false。
 
-	/** 标识符（包括类型） */
+	/**
+	 * 标识符（包括类型）
+	 */
 	IDENT,      // [_a-zA-Z] [_a-zA-Z0-9]*
 
-	/** 运算符 */
+	/**
+	 * 运算符
+	 */
 	PLUS,     // +
 	MINUS,    // -
 	MUL,      // *
@@ -63,13 +73,19 @@ public enum TokenType {
 	COLON,    // :
 	SEMICOLON,// ;
 
-	/** 注释 */
+	/**
+	 * 注释
+	 */
 	COMMENT,  // '//' regex(.*) '\n'
 
-	/** STRING */
+	/**
+	 * STRING
+	 */
 	STR,
 
-	/** 文件尾 */
+	/**
+	 * 文件尾
+	 */
 	EOF;
 
 	@Override

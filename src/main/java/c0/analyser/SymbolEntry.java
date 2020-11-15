@@ -1,60 +1,60 @@
 package c0.analyser;
 
 public class SymbolEntry {
-    boolean isConstant;
-    boolean isInitialized;
-    int stackOffset;
+	boolean isConstant;
+	boolean isInitialized;
+	int stackOffset;
 
-    /**
-     * @param isConstant
-     * @param isDeclared
-     * @param stackOffset
-     */
-    public SymbolEntry(boolean isConstant, boolean isDeclared, int stackOffset) {
-        this.isConstant = isConstant;
-        this.isInitialized = isDeclared;
-        this.stackOffset = stackOffset;
-    }
+	/**
+	 * @param isConstant
+	 * @param isDeclared
+	 * @param stackOffset
+	 */
+	public SymbolEntry(boolean isConstant, boolean isDeclared, int stackOffset) {
+		this.isConstant = isConstant;
+		this.isInitialized = isDeclared;
+		this.stackOffset = stackOffset;
+	}
 
-    /**
-     * @return the stackOffset
-     */
-    public int getStackOffset() {
-        return stackOffset;
-    }
+	/**
+	 * @return the stackOffset
+	 */
+	public int getStackOffset() {
+		return stackOffset;
+	}
 
-    /**
-     * @return the isConstant
-     */
-    public boolean isConstant() {
-        return isConstant;
-    }
+	/**
+	 * @param stackOffset the stackOffset to set
+	 */
+	public void setStackOffset(int stackOffset) {
+		this.stackOffset = stackOffset;
+	}
 
-    /**
-     * @return the isInitialized
-     */
-    public boolean isInitialized() {
-        return isInitialized;
-    }
+	/**
+	 * @return the isConstant
+	 */
+	public boolean isConstant() {
+		return isConstant;
+	}
 
-    /**
-     * @param isConstant the isConstant to set
-     */
-    public void setConstant(boolean isConstant) {
-        this.isConstant = isConstant;
-    }
+	/**
+	 * @param isConstant the isConstant to set
+	 */
+	public void setConstant(boolean isConstant) {
+		this.isConstant = isConstant;
+	}
 
-    /**
-     * @param isInitialized the isInitialized to set
-     */
-    public void setInitialized(boolean isInitialized) {
-        this.isInitialized = isInitialized;
-    }
+	/**
+	 * @return the isInitialized
+	 */
+	public boolean isInitialized() {
+		return isInitialized;
+	}
 
-    /**
-     * @param stackOffset the stackOffset to set
-     */
-    public void setStackOffset(int stackOffset) {
-        this.stackOffset = stackOffset;
-    }
+	/**
+	 * @param isInitialized the isInitialized to set
+	 */
+	public void setInitialized(boolean isInitialized) {
+		this.isInitialized = isInitialized;
+	}
 }

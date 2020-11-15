@@ -41,7 +41,7 @@ tasks.withType(JavaCompile) {
 task fatJar(type: Jar) {
     manifest {
         attributes 'Main-Class': application.mainClassName
-    } 
+    }
     baseName = "${rootProject.name}"
     from {
         configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
