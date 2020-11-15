@@ -82,15 +82,20 @@ public class Token {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append("Line: ").append(this.startPos.row).append(' ');
-		sb.append("Column: ").append(this.startPos.col).append(' ');
-		sb.append("Type: ").append(this.tokenType).append(' ');
+		sb.append("[").append(this.startPos.row).append(", ");
+		sb.append(this.startPos.col).append("] ");
+		sb.append("-> [").append(this.endPos.row).append(", ");
+		sb.append(this.endPos.col).append("] ");
+		sb.append("Type: ").append(this.tokenType).append(" ");
 		sb.append("Value: ").append(this.value);
 		return sb.toString();
 	}
 
 	public String toStringAlt() {
-		return new StringBuilder().append("Token(").append(this.tokenType).append(", value: ").append(value)
-				.append("at: ").append(this.startPos).toString();
+		return new StringBuilder()
+				.append("Token(").append(this.tokenType)
+				.append(", value: ").append(value)
+				.append("at: ").append(this.startPos)
+				.toString();
 	}
 }

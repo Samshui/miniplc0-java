@@ -216,6 +216,8 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexOperatorOrUnknown() throws TokenizeError {
+		Pos startPos = new Pos(it.currentPos().row,it.currentPos().col);
+
 		switch (it.nextChar()) {
 			case '+':
 				return new Token(TokenType.PLUS, "+", it.previousPos(), it.currentPos());
@@ -227,18 +229,18 @@ public class Tokenizer {
 				}
 			case '*':
 				return new Token(TokenType.MUL, "*", it.previousPos(), it.currentPos());
-			case '/':
-				// TODO
-				if (it.peekChar() == '/') {
-					skipComment();
-				} else {
-					return new Token(TokenType.DIV, "/", it.previousPos(), it.currentPos());
-				}
 			case '=':
 				if (it.peekChar() == '=') {
 					return new Token(TokenType.EQ, "==", it.previousPos(), it.currentPos());
 				} else {
 					return new Token(TokenType.ASSIGN, "=", it.previousPos(), it.currentPos());
+				}
+			case '/':
+				if (it.peekChar() == '/') {
+					skipComment();
+					return new Token(TokenType.COMMENT, null, startPos, it.currentPos());
+				} else {
+					return new Token(TokenType.DIV, "/", it.previousPos(), it.currentPos());
 				}
 			case '!':
 				if (it.peekChar() == '=') {
@@ -377,10 +379,7 @@ public class Tokenizer {
 	 * 跳过注释
 	 */
 	private void skipComment() {
-		while (it.peekChar() != '\n') {
-			it.nextChar();
-		}
 		it.nextChar();
-		skipSpaceCharacters();
+		while (it.peekChar() != '\n') it.nextChar();
 	}
 }

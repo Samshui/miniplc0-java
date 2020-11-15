@@ -1,4 +1,1 @@
-int x = 'a'
-int y = '\n'
-String str1 = "strstr"
-String str2 = "\\x\\x\\x\\x\'y\'"
+int x
