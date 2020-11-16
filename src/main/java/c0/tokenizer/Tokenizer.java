@@ -54,6 +54,7 @@ public class Tokenizer {
 	 * @throws TokenizeError
 	 */
 	private Token lexUIntorFloat() throws TokenizeError {
+		// TODO 越界处理
 		Pos startPos, endPos;
 		String numStorage = new String();
 
@@ -157,9 +158,7 @@ public class Tokenizer {
 				Token token = new Token(tokenType, storage, startPos, endPos);
 				return token;
 			} else {
-				// TODO: 错误处理
-				Token token = new Token(TokenType.None, "-none-", startPos, endPos);
-				return token;
+				throw new TokenizeError(ErrorCode.InvalidInput, startPos);
 			}
 		}
 	}
@@ -275,7 +274,6 @@ public class Tokenizer {
 			case ';':
 				return new Token(TokenType.SEMICOLON, ";", it.previousPos(), it.currentPos());
 			default:
-				// 不认识这个输入，摸了
 				throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
 		}
 	}

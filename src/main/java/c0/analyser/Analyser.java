@@ -40,7 +40,7 @@ public final class Analyser {
 	}
 
 	public List<Instruction> analyse() throws CompileError {
-		// analyseProgram();
+		complieMain();
 		return instructions;
 	}
 
@@ -118,6 +118,23 @@ public final class Analyser {
 	}
 
 	/**
+	 * 如果下一个 token 的类型是 tts中的任何一个，则前进一个 token 并返回，否则抛出异常
+	 *
+	 * @param tts 类型List
+	 * @return 这个 token
+	 * @throws CompileError 如果类型不匹配
+	 */
+	private Token expect(List<TokenType> tts) throws CompileError {
+		var token = peek();
+		for (TokenType tt : tts) {
+			if (token.getTokenType() == tt) {
+				return next();
+			}
+		}
+		throw new ExpectedTokenError(tts, token);
+	}
+
+	/**
 	 * 获取下一个变量的栈偏移
 	 *
 	 * @return
@@ -191,6 +208,150 @@ public final class Analyser {
 		} else {
 			return entry.isConstant();
 		}
+	}
+
+	/**
+	 *
+	 * @throws CompileError
+	 */
+	private void complieMain() throws CompileError {
+
+	}
+
+	/* 表达式 */
+	/***
+		原文法：
+		expr ->
+			  operator_expr		:expr binary_operator expr	[改写]
+			| as_expr			:expr 'as' ty				[改写]
+
+			| negate_expr		:'-' expr
+
+			| literal_expr		:UINT_LITERAL | FLOAT_LITERAL | STRING_LITERAL | CHAR_LITERAL
+
+			| ident_expr		:IDENT
+			| call_expr			:IDENT '(' call_param_list? ')'
+			| assign_expr		:l_expr '=' expr -> IDENT '=' expr
+
+		改写文法：
+		expr   ->
+			  	  binary_operator expr expr'
+			  	| 'as' ty expr''
+
+		expr'  ->
+				expr expr' | null
+
+		expr'' ->
+				expr expr'' | null
+	 ***/
+	private void analyseExpr() throws CompileError {
+		if (check(TokenType.MINUS)) {
+			analyseNegateExpr();
+		} else if (check(TokenType.IDENT)) {
+			Token now = next();
+			if (check(TokenType.L_PAREN)) {
+				analyseCallExpr(now);
+			} else if (check(TokenType.EQ)) {
+				analyseAssignExpr(now);
+			} else {
+				analyseIdentExpr(now);
+			}
+		} else if (check(TokenType.UINT_LITERAL) || check(TokenType.FLOAT_LITERAL) || check(TokenType.STRING_LITERAL) || check(TokenType.CHAR_LITERAL)) {
+			analyseLiteralExpr();
+		} else {
+
+		}
+	}
+
+	private void analyseOperatorExpr() throws CompileError {
+		analyseExpr();
+		analyseBinaryExpr();
+		analyseExpr();
+	}
+
+	private void analyseNegateExpr() throws CompileError {
+		expect(TokenType.MINUS);
+		analyseExpr();
+	}
+
+	private void analyseAssignExpr(Token now) throws CompileError {
+		if (now.getTokenType() != TokenType.IDENT)
+			throw new ExpectedTokenError(TokenType.IDENT, now);
+
+		// analyseLeftExpr(); -> IDENT
+		expect(TokenType.EQ);
+		analyseExpr();
+	}
+
+	private void analyseAsExpr() throws CompileError {
+		analyseExpr();
+		expect(TokenType.AS_KW);
+		analyseTy();
+	}
+
+	private void analyseCallExpr(Token now) throws CompileError {
+		if (now.getTokenType() != TokenType.IDENT)
+			throw new ExpectedTokenError(TokenType.IDENT, now);
+
+		expect(TokenType.L_PAREN);
+		analyseCallParamList();
+		expect(TokenType.R_PAREN);
+	}
+
+	private void analyseLiteralExpr() throws CompileError {
+		expect(List.of(
+				TokenType.UINT_LITERAL,
+				TokenType.FLOAT_LITERAL,
+				TokenType.STRING_LITERAL,
+				TokenType.CHAR_LITERAL));
+	}
+
+	private void analyseIdentExpr(Token now) throws CompileError {
+		if (now.getTokenType() != TokenType.IDENT)
+			throw new ExpectedTokenError(TokenType.IDENT, now);
+		// expect(TokenType.IDENT);
+	}
+
+	private void analyseBinaryExpr() throws CompileError {
+		if (check(TokenType.PLUS) ||
+				check(TokenType.MINUS) ||
+				check(TokenType.MUL) ||
+				check(TokenType.DIV) ||
+				check(TokenType.EQ) ||
+				check(TokenType.NEQ) ||
+				check(TokenType.LT) ||
+				check(TokenType.GT) ||
+				check(TokenType.LE) ||
+				check(TokenType.GE)) {
+			String name = (String) peek().getValue();
+		} else {
+			throw new ExpectedTokenError(List.of(
+					TokenType.PLUS,
+					TokenType.MINUS,
+					TokenType.MUL,
+					TokenType.DIV,
+					TokenType.EQ,
+					TokenType.NEQ,
+					TokenType.LT,
+					TokenType.GT,
+					TokenType.LE,
+					TokenType.GE), next());
+		}
+	}
+
+	private void analyseCallParamList() throws CompileError {
+		analyseExpr();
+		while (nextIf(TokenType.COMMA) != null) {
+			analyseExpr();
+		}
+	}
+
+	private void analyseLeftExpr() throws CompileError {
+		expect(TokenType.IDENT);
+	}
+
+	private void analyseTy() throws CompileError {
+		expect(TokenType.IDENT);
 	}
 
 //    private void analyseProgram() throws CompileError {

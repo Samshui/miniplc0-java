@@ -1,1 +1,7 @@
-int x
+fn foo(i: int) -> int {
+    return -i;
+}
+
+fn main() -> void {
+    putint(foo(-123456));
+}
