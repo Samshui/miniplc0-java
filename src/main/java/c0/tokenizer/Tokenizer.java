@@ -43,7 +43,11 @@ public class Tokenizer {
 		} else if (peek == '\'') {
 			return lexCharLiteral();
 		} else {
-			return lexOperatorOrUnknown();
+			Token token = lexOperatorOrUnknown();
+			if (token == null) {
+				return nextToken();
+			}
+			return token;
 		}
 	}
 
@@ -237,7 +241,7 @@ public class Tokenizer {
 			case '/':
 				if (it.peekChar() == '/') {
 					skipComment();
-					return new Token(TokenType.COMMENT, null, startPos, it.currentPos());
+					return null;
 				} else {
 					return new Token(TokenType.DIV, "/", it.previousPos(), it.currentPos());
 				}
