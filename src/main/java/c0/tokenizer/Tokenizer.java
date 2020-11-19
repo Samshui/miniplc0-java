@@ -35,7 +35,7 @@ public class Tokenizer {
 
 		char peek = it.peekChar();
 		if (Character.isDigit(peek)) {
-			return lexUIntorFloat();
+			return lexUIntorDouble();
 		} else if (Character.isAlphabetic(peek) || peek == '_') {
 			return lexIdentOrKeyword();
 		} else if (peek == '\"') {
@@ -57,7 +57,7 @@ public class Tokenizer {
 	 * @return
 	 * @throws TokenizeError
 	 */
-	private Token lexUIntorFloat() throws TokenizeError {
+	private Token lexUIntorDouble() throws TokenizeError {
 		// TODO 越界处理
 		Pos startPos, endPos;
 		String numStorage = new String();
@@ -73,22 +73,40 @@ public class Tokenizer {
 			it.nextChar();
 		}
 
-		/* float */
+		/* double */
 		if (nextCH == '.') {
 			numStorage += nextCH;
 			it.nextChar();
 
-			while (Character.isDigit(nextCH = it.peekChar()) ||
-					nextCH == 'e' ||
-					nextCH == 'E') {
-				numStorage += nextCH;
-				it.nextChar();
-			}
+			boolean isSC = false; // 是否为科学计数
+			boolean isSigned = false; // 是否已经有符号
+
+			if (Character.isDigit(nextCH = it.peekChar())) {
+				while (Character.isDigit(nextCH = it.peekChar()) ||
+						nextCH == 'e' || nextCH == 'E' ||
+						nextCH == '+' || nextCH == '-') {
+
+					if (nextCH == 'e' || nextCH == 'E') {
+						if (!isSC) isSC = true;
+						else throw new TokenizeError(ErrorCode.InvalidDouble, it.currentPos());
+					}
+
+					if (nextCH == '+' || nextCH == '-') {
+						if (isSC) {
+							if (!isSigned) isSigned = true;
+							else throw new TokenizeError(ErrorCode.InvalidDouble, it.currentPos());
+						} else throw new TokenizeError(ErrorCode.InvalidDouble, it.currentPos());
+					}
+
+					numStorage += nextCH;
+					it.nextChar();
+				}
+			} else throw new TokenizeError(ErrorCode.InvalidDouble, it.currentPos());
 
 			endPos = new Pos(it.currentPos().row, it.currentPos().col);
-			Double float_num = new Double(numStorage);
+			Double double_num = new Double(numStorage);
 
-			Token token = new Token(TokenType.FLOAT_LITERAL, float_num, startPos, endPos);
+			Token token = new Token(TokenType.DOUBLE_LITERAL, double_num, startPos, endPos);
 			return token;
 		}
 		/* uint */
@@ -185,6 +203,10 @@ public class Tokenizer {
 				TokenType.RETURN_KW,
 				TokenType.BREAK_KW,
 				TokenType.CONTINUE_KW,
+				TokenType.INT_TY,
+				TokenType.VOID_TY,
+
+				TokenType.DOUBLE_TY,
 				TokenType.STR
 		));
 
@@ -199,6 +221,9 @@ public class Tokenizer {
 				"return",
 				"break",
 				"continue",
+				"int",
+				"void",
+				"double",
 				str
 		));
 

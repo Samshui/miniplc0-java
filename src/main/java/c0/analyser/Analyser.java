@@ -6,11 +6,11 @@ import c0.error.ErrorCode;
 import c0.error.ExpectedTokenError;
 import c0.error.TokenizeError;
 import c0.instruction.Instruction;
-import c0.instruction.Operation;
 import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
 import c0.util.Pos;
+import org.checkerframework.checker.units.qual.C;
 
 import java.util.*;
 
@@ -40,7 +40,6 @@ public final class Analyser {
 	}
 
 	public List<Instruction> analyse() throws CompileError {
-//		complieMain();
 		return instructions;
 	}
 
@@ -214,7 +213,7 @@ public final class Analyser {
 	 * @design
 	 *
 	 * E -> 	 E B E
-	 * 		   | E 'as' IDENT
+	 * 		   | E 'as' T
 	 *
 	 * 		   | '-' E
 	 * 		   | '(' E ')'
@@ -227,9 +226,162 @@ public final class Analyser {
 	 *
 	 * B -> 	 '+' | '-' | '*' | '/' | '==' | '!=' | '<' | '>' | <= | >=
 	 * C -> 	 E {',' E}
+	 * T ->		 INT | VOID | DOUBLE
 	 */
 
+	/*
+	 * EXAMPLE:
+	 * fn fib(x: int) -> int {
+	 *     if x<=1 {
+	 *         return 1;
+	 *     }
+	 *     let result: int = fib(x - 1);
+	 *     result = result + fib(x - 2);
+	 *     return result;
+	 * }
+	 *
+	 * fn main() -> int {
+	 *     let i: int = 0;
+	 *     let j: int;
+	 *     j = getint();
+	 *     while i < j {
+	 *         putint(i);
+	 *         putchar(32);
+	 *         putint(fib(i));
+	 *         putln();
+	 *         i = i + 1;
+	 *     }
+	 *     return 0;
+	 * }
+	 */
 
+	/**
+	 * 表达式
+	 */
+	private void analyseExpr() throws CompileError {}
+
+	/**
+	 * 语句
+	 */
+	private void analyseStmt() throws CompileError {}
+
+	/**
+	 * 运算符表达式
+	 */
+	private boolean isBinaryOperator(Token token) {
+		return token.getTokenType() == TokenType.PLUS || token.getTokenType() == TokenType.MINUS ||
+				token.getTokenType() == TokenType.MUL || token.getTokenType() == TokenType.DIV ||
+				token.getTokenType() == TokenType.EQ || token.getTokenType() == TokenType.NEQ ||
+				token.getTokenType() == TokenType.LT || token.getTokenType() == TokenType.GT ||
+				token.getTokenType() == TokenType.LE || token.getTokenType() == TokenType.GE;
+	}
+
+	private void analyseOperatorExpr() throws CompileError {
+		// TODO 局部opg分析
+	}
+
+	/**
+	 * 取反表达式
+	 */
+	private void analyseNegateExpr() throws CompileError {
+		// TODO 是否需要在此处保存Expr的值并取反后填入地址
+		expect(TokenType.MINUS);
+		analyseExpr();
+	}
+
+	/**
+	 * 赋值表达式
+	 */
+	private void analyseAssignExpr() throws CompileError {
+		Token name = peek();
+		expect(TokenType.IDENT);
+		expect(TokenType.EQ);
+
+		// TODO 查表，如果表里面有，就判断类型，如果类型也合适就加指令，否则报错
+	}
+
+	/**
+	 * 类型转换表达式
+	 */
+	private void analyseAsExpr() throws CompileError {
+		// TODO 局部opg分析
+	}
+
+	/**
+	 * 函数调用表达式
+	 */
+	private void callParamList() throws CompileError {
+		// TODO 读到一个表达式应该作为函数的参数，需要进行一些操作
+		analyseExpr();
+		while (nextIf(TokenType.COMMA) != null) {
+			analyseExpr();
+		}
+	}
+
+	private void analyseCallExpr() throws CompileError {
+		Token funcName = peek();
+
+		// TODO 查表（函数名称）
+
+		expect(TokenType.IDENT);
+		expect(TokenType.L_PAREN);
+
+		// 当有参数时
+		if (!check(TokenType.R_PAREN)) {
+			// TODO 获取参数后操作，除了标准库函数，其他函数在使用前必先声明
+			callParamList();
+		}
+		expect(TokenType.R_PAREN);
+	}
+
+	/**
+	 * 字面量表达式
+	 */
+	private void analyseLiteralExpr() throws CompileError {
+		Token name = peek();
+		expect(List.of(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL));
+		// TODO 返回值
+	}
+
+	/**
+	 * 标识符表达式
+	 */
+	private void analyseIdentExpr() throws CompileError {
+		Token name = peek();
+		expect(TokenType.IDENT);
+		// TODO 按照name查表，返回Ident对应的值
+	}
+
+	/**
+	 * 表达式语句
+	 */
+	private void analyseExprStmt() throws CompileError {
+		// TODO 表达式如果有值，则丢弃值
+		analyseExpr();
+		expect(TokenType.SEMICOLON);
+	}
+
+	/**
+	 * 声明语句
+	 */
+	private void letDeclStmt() throws CompileError {
+		expect(TokenType.LET_KW);
+		expect(TokenType.IDENT);
+		expect(TokenType.COLON);
+		expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
+		if (!check(TokenType.SEMICOLON)) {
+			expect(TokenType.EQ);
+			analyseExpr();
+		}
+	}
+
+	private void constDeclStmt() throws CompileError {
+
+	}
+
+	private void analyseDeclStmt() {
+
+	}
 
 
 //    private void analyseProgram() throws CompileError {

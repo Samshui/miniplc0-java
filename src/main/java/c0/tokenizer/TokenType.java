@@ -20,26 +20,12 @@ public enum TokenType {
 	BREAK_KW,   // break
 	CONTINUE_KW,// continue
 
-    /*
-        digit -> [0-9]
-        UINT_LITERAL -> digit+
-
-        escape_sequence -> '\' [\\"'nrt]
-        string_regular_char -> [^"\\]
-        STRING_LITERAL -> '"' (string_regular_char | escape_sequence)* '"'
-
-        // 扩展 c0
-        FLOAT_LITERAL -> digit+ '.' digit+ ([eE] digit+)?
-
-        char_regular_char -> [^'\\]
-        CHAR_LITERAL -> '\'' (char_regular_char | escape_sequence)* '\''
-     */
 	/**
 	 * 字面量
 	 */
 	UINT_LITERAL,   // digit+
 	STRING_LITERAL, // '"' (string_regular_char | escape_sequence)* '"'
-	FLOAT_LITERAL,  // digit+ '.' digit+ ([eE] digit+)?
+	DOUBLE_LITERAL,  // digit+ '.' digit+ ([eE] digit+)?
 	CHAR_LITERAL,   // '\'' (char_regular_char | escape_sequence)* '\''
 
 	/** 真值 */
@@ -84,6 +70,13 @@ public enum TokenType {
 	STR,
 
 	/**
+	 * 类型系统
+	 */
+	INT_TY,
+	VOID_TY,
+	DOUBLE_TY,
+
+	/**
 	 * 文件尾
 	 */
 	EOF;
@@ -117,8 +110,8 @@ public enum TokenType {
 				return "UINT";
 			case STRING_LITERAL:
 				return "STRING";
-			case FLOAT_LITERAL:
-				return "FLOAT";
+			case DOUBLE_LITERAL:
+				return "DOUBLE";
 			case CHAR_LITERAL:
 				return "CHAR";
 			case IDENT:
@@ -163,6 +156,12 @@ public enum TokenType {
 				return "SEMICOLON";
 			case COMMENT:
 				return "COMMENT";
+			case INT_TY:
+				return "int-ty";
+			case VOID_TY:
+				return "void-ty";
+			case DOUBLE_TY:
+				return "double-ty";
 			default:
 				return "InvalidToken";
 		}
