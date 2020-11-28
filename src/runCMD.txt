@@ -1,0 +1,1 @@
+java -jar build/libs/c0.jar -t in.txt -o out.txt

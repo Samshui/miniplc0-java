@@ -28,7 +28,9 @@ public enum TokenType {
 	DOUBLE_LITERAL,  // digit+ '.' digit+ ([eE] digit+)?
 	CHAR_LITERAL,   // '\'' (char_regular_char | escape_sequence)* '\''
 
-	/** 真值 */
+	/**
+	 * 真值
+	 */
 	// 所有非 0 的布尔值都被视为 true，而 0 被视为 false。
 
 	/**

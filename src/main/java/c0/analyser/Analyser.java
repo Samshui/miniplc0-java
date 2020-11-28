@@ -10,7 +10,6 @@ import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
 import c0.util.Pos;
-import org.checkerframework.checker.units.qual.C;
 
 import java.util.*;
 
@@ -258,12 +257,9 @@ public final class Analyser {
 	/**
 	 * 表达式
 	 */
-	private void analyseExpr() throws CompileError {}
+	private void analyseExpr() throws CompileError {
 
-	/**
-	 * 语句
-	 */
-	private void analyseStmt() throws CompileError {}
+	}
 
 	/**
 	 * 运算符表达式
@@ -312,10 +308,8 @@ public final class Analyser {
 	 */
 	private void callParamList() throws CompileError {
 		// TODO 读到一个表达式应该作为函数的参数，需要进行一些操作
-		analyseExpr();
-		while (nextIf(TokenType.COMMA) != null) {
-			analyseExpr();
-		}
+		do { analyseExpr(); }
+		while (nextIf(TokenType.COMMA) != null);
 	}
 
 	private void analyseCallExpr() throws CompileError {
@@ -339,7 +333,11 @@ public final class Analyser {
 	 */
 	private void analyseLiteralExpr() throws CompileError {
 		Token name = peek();
-		expect(List.of(TokenType.UINT_LITERAL, TokenType.DOUBLE_LITERAL, TokenType.STRING_LITERAL));
+		expect(List.of(
+				TokenType.UINT_LITERAL,
+				TokenType.DOUBLE_LITERAL,
+				TokenType.STRING_LITERAL
+		));
 		// TODO 返回值
 	}
 
@@ -350,6 +348,32 @@ public final class Analyser {
 		Token name = peek();
 		expect(TokenType.IDENT);
 		// TODO 按照name查表，返回Ident对应的值
+	}
+
+	/**
+	 * @design
+	 *
+	 * S -> E ';' 								|
+	 * 		'let' IDENT ':' ty ('=' E)? ';' 	|
+	 * 		'const' IDENT ':' ty '=' E ';'		|
+	 * 		'if' E BS ('else' (BS | IFS))? 		|--> IFS
+	 * 		'while' E BS 						|
+	 * 		'return' E? ';' 					|
+	 * 		'{' S* '}' 							|--> BS
+	 * 		';'
+	 */
+
+	/**
+	 * 语句
+	 */
+	private void analyseStmt() throws CompileError {
+		if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) analyseDeclStmt();
+		else if (check(TokenType.IF_KW)) analyseIfStmt();
+		else if (check(TokenType.WHILE_KW)) analyseWhileStmt();
+		else if (check(TokenType.RETURN_KW)) analyseReturnStmt();
+		else if (check(TokenType.L_BRACE)) analyseBlockStmt();
+		else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
+		else analyseExprStmt();
 	}
 
 	/**
@@ -364,7 +388,7 @@ public final class Analyser {
 	/**
 	 * 声明语句
 	 */
-	private void letDeclStmt() throws CompileError {
+	private void isLetDeclStmt() throws CompileError {
 		expect(TokenType.LET_KW);
 		expect(TokenType.IDENT);
 		expect(TokenType.COLON);
@@ -373,17 +397,72 @@ public final class Analyser {
 			expect(TokenType.EQ);
 			analyseExpr();
 		}
+		expect(TokenType.SEMICOLON);
 	}
 
-	private void constDeclStmt() throws CompileError {
-
+	private void isConstDeclStmt() throws CompileError {
+		expect(TokenType.CONST_KW);
+		expect(TokenType.IDENT);
+		expect(TokenType.COLON);
+		expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
+		expect(TokenType.EQ);
+		analyseExpr();
+		expect(TokenType.SEMICOLON);
 	}
 
-	private void analyseDeclStmt() {
-
+	private void analyseDeclStmt() throws CompileError {
+		if (check(TokenType.LET_KW)) isLetDeclStmt();
+		else if (check(TokenType.CONST_KW)) isConstDeclStmt();
+		else throw new ExpectedTokenError(List.of(TokenType.LET_KW, TokenType.CONST_KW), peek());
 	}
 
+	/**
+	 * 控制流语句
+	 */
+	private void analyseIfStmt() throws CompileError {
+		expect(TokenType.IF_KW);
+		analyseExpr();
+		analyseBlockStmt();
 
+		if (check(TokenType.ELSE_KW)) {
+			expect(TokenType.ELSE_KW);
+			if (check(TokenType.L_BRACE)) analyseBlockStmt();
+			else if (check(TokenType.IF_KW)) analyseIfStmt();
+			else throw new ExpectedTokenError(List.of(TokenType.L_BRACE, TokenType.IF_KW), peek());
+		}
+	}
+
+	private void analyseWhileStmt() throws CompileError {
+		expect(TokenType.WHILE_KW);
+		analyseExpr();
+		analyseBlockStmt();
+	}
+
+	private void analyseReturnStmt() throws CompileError {
+		expect(TokenType.RETURN_KW);
+		if (!check(TokenType.SEMICOLON)) {
+			analyseExpr();
+		}
+		expect(TokenType.SEMICOLON);
+	}
+
+	/**
+	 * 代码块
+	 */
+	private void analyseBlockStmt() throws CompileError {
+		expect(TokenType.L_BRACE);
+		while (check(TokenType.R_BRACE)) {
+			analyseStmt();
+		}
+		expect(TokenType.R_BRACE);
+	}
+
+	/**
+	 * 空语句
+	 */
+	private void analyseEmptyStmt() throws CompileError {
+		expect(TokenType.SEMICOLON);
+	}
 //    private void analyseProgram() throws CompileError {
 //        // 程序 -> 'begin' 主过程 'end'
 //        // 示例函数，示例如何调用子程序

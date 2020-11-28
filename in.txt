@@ -1,14 +1,12 @@
-fn main() -> int {
-    let i: int = 0;
-    let j: int;
-    j = getint();
-    while i < j {
-        putint(i);
-        putchar(32);
-        putint(fib(i));
-        putln();
-        i = i + 1;
-    }
-    // this is a comment
-    return 0;
-}
+"STRING/'????"
+'a'
+'\\'
+'\''
+'\n'
+'\"'
+'\t'
+// comment
+1234
+1.234
+1.23e3
+1.23e-3

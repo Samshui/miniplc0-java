@@ -35,18 +35,21 @@ public class Tokenizer {
 
 		char peek = it.peekChar();
 		if (Character.isDigit(peek)) {
+			// int or double
 			return lexUIntorDouble();
 		} else if (Character.isAlphabetic(peek) || peek == '_') {
+			// ident or keyword
 			return lexIdentOrKeyword();
 		} else if (peek == '\"') {
+			// string
 			return lexStringLiteral();
 		} else if (peek == '\'') {
+			// char
 			return lexCharLiteral();
 		} else {
+			// operator or comment or unknown
 			Token token = lexOperatorOrUnknown();
-			if (token == null) {
-				return nextToken();
-			}
+			if (token == null) return nextToken();
 			return token;
 		}
 	}
