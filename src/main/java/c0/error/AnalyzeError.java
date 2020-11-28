@@ -9,7 +9,6 @@ public class AnalyzeError extends CompileError {
 	Pos pos;
 
 	/**
-	 * @param errorToken
 	 * @param code
 	 * @param pos
 	 */
@@ -30,6 +29,10 @@ public class AnalyzeError extends CompileError {
 
 	@Override
 	public String toString() {
-		return new StringBuilder().append("Analyze Error: ").append(code).append(", at: ").append(pos).toString();
+		return new StringBuilder()
+				.append("Analyze Error: ")
+				.append(code)
+				.append(", at: ")
+				.append(pos).toString();
 	}
 }

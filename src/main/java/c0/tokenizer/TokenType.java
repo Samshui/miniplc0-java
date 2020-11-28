@@ -1,5 +1,9 @@
 package c0.tokenizer;
 
+import c0.error.AnalyzeError;
+import c0.error.ErrorCode;
+import c0.error.ExpectedTokenError;
+
 public enum TokenType {
 	/**
 	 * 空

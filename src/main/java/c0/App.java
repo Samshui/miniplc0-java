@@ -102,9 +102,10 @@ public class App {
 				System.exit(0);
 				return;
 			}
-			for (Instruction instruction : instructions) {
-				output.println(instruction.toString());
-			}
+			output.println("SUCCESS");
+//			for (Instruction instruction : instructions) {
+//				output.println(instruction.toString());
+//			}
 		} else {
 			System.err.println("Please specify either '--analyse' or '--tokenize'.");
 			System.exit(3);

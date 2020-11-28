@@ -1,12 +1,8 @@
-"STRING/'????"
-'a'
-'\\'
-'\''
-'\n'
-'\"'
-'\t'
-// comment
-1234
-1.234
-1.23e3
-1.23e-3
+fn fib(x: int) -> int {
+    if x<=1 {
+        return 1;
+    }
+    let result: int = fib(x - 1);
+    result = result + fib(x - 2);
+    return result;
+}

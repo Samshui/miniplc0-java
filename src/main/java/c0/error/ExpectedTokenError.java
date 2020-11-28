@@ -48,7 +48,14 @@ public class ExpectedTokenError extends CompileError {
 
 	@Override
 	public String toString() {
-		return new StringBuilder().append("Analyse error. Expected ").append(expecTokenType).append(" at ")
-				.append(token.getStartPos()).append("got: ").append(token.toStringAlt()).toString();
+		return new StringBuilder()
+				.append("\nAnalyse error. Expected ")
+				.append(expecTokenType)
+				.append(" at ")
+				.append(token.getStartPos())
+				.append("\ngot: ")
+				.append(token.toStringAlt())
+				.append("\n")
+				.toString();
 	}
 }

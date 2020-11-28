@@ -1,5 +1,6 @@
 package c0.tokenizer;
 
+import c0.error.AnalyzeError;
 import c0.error.TokenizeError;
 import c0.error.ErrorCode;
 import c0.util.Pos;
@@ -208,7 +209,6 @@ public class Tokenizer {
 				TokenType.CONTINUE_KW,
 				TokenType.INT_TY,
 				TokenType.VOID_TY,
-
 				TokenType.DOUBLE_TY,
 				TokenType.STR
 		));
@@ -254,6 +254,7 @@ public class Tokenizer {
 				return new Token(TokenType.PLUS, "+", it.previousPos(), it.currentPos());
 			case '-':
 				if (it.peekChar() == '>') {
+					it.nextChar();
 					return new Token(TokenType.ARROW, "->", it.previousPos(), it.currentPos());
 				} else {
 					return new Token(TokenType.MINUS, "-", it.previousPos(), it.currentPos());
@@ -262,6 +263,7 @@ public class Tokenizer {
 				return new Token(TokenType.MUL, "*", it.previousPos(), it.currentPos());
 			case '=':
 				if (it.peekChar() == '=') {
+					it.nextChar();
 					return new Token(TokenType.EQ, "==", it.previousPos(), it.currentPos());
 				} else {
 					return new Token(TokenType.ASSIGN, "=", it.previousPos(), it.currentPos());
@@ -275,18 +277,21 @@ public class Tokenizer {
 				}
 			case '!':
 				if (it.peekChar() == '=') {
+					it.nextChar();
 					return new Token(TokenType.NEQ, "!=", it.previousPos(), it.currentPos());
 				} else {
 					throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos());
 				}
 			case '<':
 				if (it.peekChar() == '=') {
+					it.nextChar();
 					return new Token(TokenType.LE, "<=", it.previousPos(), it.currentPos());
 				} else {
 					return new Token(TokenType.LT, "<", it.previousPos(), it.currentPos());
 				}
 			case '>':
 				if (it.peekChar() == '=') {
+					it.nextChar();
 					return new Token(TokenType.GE, ">=", it.previousPos(), it.currentPos());
 				} else {
 					return new Token(TokenType.GT, ">", it.previousPos(), it.currentPos());

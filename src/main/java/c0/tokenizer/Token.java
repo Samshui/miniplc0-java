@@ -95,7 +95,7 @@ public class Token {
 		return new StringBuilder()
 				.append("Token(").append(this.tokenType)
 				.append(", value: ").append(value)
-				.append("at: ").append(this.startPos)
+				.append(") at: ").append(this.startPos)
 				.toString();
 	}
 }

@@ -14,7 +14,7 @@ public enum ErrorCode {
 	InvalidChar,                    	// 无效字符常量				[词法分析]
 	InvalidVariableDeclaration,
 	IntegerOverflow,
-	IncompleteExpression,
+	IncompleteExpression,				// 表达不完整					[语法分析]
 	IncompleteString,                	// 字符串常量左右引号无法对应	[词法分析]
 	IncompleteChar,                    	// 字符常量左右引号无法对应		[词法分析]
 	StreamError,
@@ -24,5 +24,7 @@ public enum ErrorCode {
 	NotInitialized,
 	InvalidAssignment,
 	InvalidPrint,
-	ExpectedToken
+	InvalidIndent,						// 标识符无效					[语法分析]
+	ExpectedToken,
+	ExprERROR
 }
