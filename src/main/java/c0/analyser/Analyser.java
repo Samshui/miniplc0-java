@@ -6,6 +6,7 @@ import c0.error.ErrorCode;
 import c0.error.ExpectedTokenError;
 import c0.error.TokenizeError;
 import c0.instruction.Instruction;
+import c0.table.SymbolTable;
 import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
@@ -26,7 +27,8 @@ public final class Analyser {
 	/**
 	 * 符号表
 	 */
-	HashMap<String, SymbolEntry> symbolTable = new HashMap<>();
+	HashMap<String, SymbolEntry> _symbolTable = new HashMap<>();
+	SymbolTable symbolTable = new SymbolTable(140000);
 
 	/**
 	 * 下一个变量的栈偏移
@@ -39,11 +41,8 @@ public final class Analyser {
 	}
 
 	public List<Instruction> analyse() throws CompileError {
-//		analyseStmt();
-//		analyseExpr();
 		analyseProgramme();
 		next();
-		System.out.println(peek().getTokenType().toString());
 		return instructions;
 	}
 
@@ -194,16 +193,21 @@ public final class Analyser {
 	 * @param name          名字
 	 * @param isInitialized 是否已赋值
 	 * @param isConstant    是否是常量
+	 * @param type  		符合类型
 	 * @param curPos        当前 token 的位置（报错用）
 	 * @throws AnalyzeError 如果重复定义了则抛异常
 	 */
-	private void addSymbol(String name, boolean isInitialized, boolean isConstant, Pos curPos) throws AnalyzeError {
-		if (this.symbolTable.get(name) != null) {
+	private void addSymbol(String name, boolean isInitialized, boolean isConstant, int type, Pos curPos) throws AnalyzeError {
+		if (this._symbolTable.get(name) != null) {
 			throw new AnalyzeError(ErrorCode.DuplicateDeclaration, curPos);
 		} else {
-			this.symbolTable.put(name, new SymbolEntry(isConstant, isInitialized, getNextVariableOffset()));
+			this._symbolTable.put(name, new SymbolEntry(name, isConstant, isInitialized, type, getNextVariableOffset(), null));
 		}
 	}
+
+	// 新的添加函数：不检查重定义的问题
+
+
 
 	/**
 	 * 设置符号为已赋值
@@ -213,7 +217,7 @@ public final class Analyser {
 	 * @throws AnalyzeError 如果未定义则抛异常
 	 */
 	private void initializeSymbol(String name, Pos curPos) throws AnalyzeError {
-		var entry = this.symbolTable.get(name);
+		var entry = this._symbolTable.get(name);
 		if (entry == null) {
 			throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 		} else {
@@ -230,11 +234,11 @@ public final class Analyser {
 	 * @throws AnalyzeError
 	 */
 	private int getOffset(String name, Pos curPos) throws AnalyzeError {
-		var entry = this.symbolTable.get(name);
+		var entry = this._symbolTable.get(name);
 		if (entry == null) {
 			throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 		} else {
-			return entry.getStackOffset();
+			return entry.getOffset();
 		}
 	}
 
@@ -247,7 +251,7 @@ public final class Analyser {
 	 * @throws AnalyzeError
 	 */
 	private boolean isConstant(String name, Pos curPos) throws AnalyzeError {
-		var entry = this.symbolTable.get(name);
+		var entry = this._symbolTable.get(name);
 		if (entry == null) {
 			throw new AnalyzeError(ErrorCode.NotDeclared, curPos);
 		} else {
@@ -271,32 +275,6 @@ public final class Analyser {
 	 * B -> 	 '+' | '-' | '*' | '/' | '==' | '!=' | '<' | '>' | <= | >=
 	 * C -> 	 E {',' E}
 	 * T ->		 INT | VOID | DOUBLE
-	 */
-
-	/*
-	 * EXAMPLE:
-	 * fn fib(x: int) -> int {
-	 *     if x<=1 {
-	 *         return 1;
-	 *     }
-	 *     let result: int = fib(x - 1);
-	 *     result = result + fib(x - 2);
-	 *     return result;
-	 * }
-	 *
-	 * fn main() -> int {
-	 *     let i: int = 0;
-	 *     let j: int;
-	 *     j = getint();
-	 *     while i < j {
-	 *         putint(i);
-	 *         putchar(32);
-	 *         putint(fib(i));
-	 *         putln();
-	 *         i = i + 1;
-	 *     }
-	 *     return 0;
-	 * }
 	 */
 
 	/**

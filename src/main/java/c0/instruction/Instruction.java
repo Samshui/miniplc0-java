@@ -3,12 +3,12 @@ package c0.instruction;
 import java.util.Objects;
 
 public class Instruction {
-	Integer x;
+	Number x;
 	private Operation opt;
 
 	public Instruction(Operation opt) {
 		this.opt = opt;
-		this.x = 0;
+		this.x = null;
 	}
 
 	public Instruction(Operation opt, Integer x) {
@@ -16,9 +16,9 @@ public class Instruction {
 		this.x = x;
 	}
 
-	public Instruction() {
-		this.opt = Operation.LIT;
-		this.x = 0;
+	public Instruction(Operation opt, Double x) {
+		this.opt = opt;
+		this.x = x;
 	}
 
 	@Override
@@ -44,7 +44,7 @@ public class Instruction {
 		this.opt = opt;
 	}
 
-	public Integer getX() {
+	public Number getX() {
 		return x;
 	}
 
@@ -54,20 +54,6 @@ public class Instruction {
 
 	@Override
 	public String toString() {
-		switch (this.opt) {
-			case ADD:
-			case DIV:
-			case ILL:
-			case MUL:
-			case SUB:
-			case WRT:
-				return String.format("%s", this.opt);
-			case LIT:
-			case LOD:
-			case STO:
-				return String.format("%s %s", this.opt, this.x);
-			default:
-				return "ILL";
-		}
+		return "this is a instruction";
 	}
 }
