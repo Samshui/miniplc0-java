@@ -1,5 +1,7 @@
-fn fib(x: int) -> int {
-    let y: int;
-    y = x;
-    return x;
+fn foo(i: int) -> int {
+    return -i;
+}
+
+fn main() -> void {
+    putint(foo(-123456));
 }

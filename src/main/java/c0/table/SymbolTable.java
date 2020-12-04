@@ -14,6 +14,11 @@ public class SymbolTable {
 		this.usedCount = 0;
 	}
 
+	public SymbolTable() {
+		this.table = new SymbolEntry[10000];
+		this.usedCount = 0;
+	}
+
 	/* setter & getter */
 	public int getUsedCount() {
 		return usedCount;

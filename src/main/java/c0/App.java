@@ -102,7 +102,6 @@ public class App {
 				System.exit(0);
 				return;
 			}
-			output.println("SUCCESS");
 //			for (Instruction instruction : instructions) {
 //				output.println(instruction.toString());
 //			}

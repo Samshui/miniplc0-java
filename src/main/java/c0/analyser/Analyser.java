@@ -1,18 +1,17 @@
 package c0.analyser;
 
-import c0.error.AnalyzeError;
-import c0.error.CompileError;
-import c0.error.ErrorCode;
-import c0.error.ExpectedTokenError;
-import c0.error.TokenizeError;
+import c0.error.*;
 import c0.instruction.Instruction;
+import c0.table.FuncTable;
 import c0.table.SymbolTable;
 import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
 import c0.util.Pos;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public final class Analyser {
 
@@ -28,7 +27,8 @@ public final class Analyser {
 	 * 符号表
 	 */
 	HashMap<String, SymbolEntry> _symbolTable = new HashMap<>();
-	SymbolTable symbolTable = new SymbolTable(140000);
+	SymbolTable symbolTable = new SymbolTable();
+	FuncTable funcTable = new FuncTable();
 
 	/**
 	 * 下一个变量的栈偏移
@@ -193,7 +193,7 @@ public final class Analyser {
 	 * @param name          名字
 	 * @param isInitialized 是否已赋值
 	 * @param isConstant    是否是常量
-	 * @param type  		符合类型
+	 * @param type          符合类型
 	 * @param curPos        当前 token 的位置（报错用）
 	 * @throws AnalyzeError 如果重复定义了则抛异常
 	 */
@@ -204,9 +204,6 @@ public final class Analyser {
 			this._symbolTable.put(name, new SymbolEntry(name, isConstant, isInitialized, type, getNextVariableOffset(), null));
 		}
 	}
-
-	// 新的添加函数：不检查重定义的问题
-
 
 
 	/**
@@ -260,171 +257,217 @@ public final class Analyser {
 	}
 
 	/**
-	 * @design
+	 * 判断token是否为二元比较符
 	 *
-	 * E -> E B E 							|--> OE
-	 * 		E 'as' ty						|--> ASE
-	 * 		'-' E							|
-	 * 		'(' E ')'						|
-	 * 		IDENT							|
-	 * 		IDENT '(' C ')'					|
-	 * 		IDENT '=' E 					|
-	 * 		UINT | DOUBLE | STRING | CHAR
-	 *
-	 *
-	 * B -> 	 '+' | '-' | '*' | '/' | '==' | '!=' | '<' | '>' | <= | >=
-	 * C -> 	 E {',' E}
-	 * T ->		 INT | VOID | DOUBLE
+	 * @param token
+	 * @return
 	 */
+	private TokenType isBinaryComparer(Token token) {
+		if (token.getTokenType() == TokenType.EQ ||
+				token.getTokenType() == TokenType.NEQ ||
+				token.getTokenType() == TokenType.LT ||
+				token.getTokenType() == TokenType.GT ||
+				token.getTokenType() == TokenType.LE ||
+				token.getTokenType() == TokenType.GE) {
+			return token.getTokenType();
+		}
+		return null;
+	}
 
 	/**
-	 * 表达式
+	 * 二元比较
+	 *
+	 * @return
+	 * @throws CompileError
 	 */
-	private void analyseExpr() throws CompileError {
-		System.out.println(peek().toString());
-		// 取反表达式
-		if (check(TokenType.MINUS)) analyseNegateExpr();
-		// 括号表达式
-		else if (check(TokenType.L_PAREN)) analyseGroupExpr();
-		else if (check(TokenType.IDENT)) {
-			Token tokenStorage = next();
-
-			// 函数调用表达式
-			if (check(TokenType.L_PAREN)) analyseCallExpr(tokenStorage);
-			// 赋值表达式
-			else if (check(TokenType.ASSIGN)) analyseAssignExpr(tokenStorage);
-			// 标识符表达式
-			else analyseIdentExpr(tokenStorage);
+	private Object analysisBinaryCompare() throws CompileError {
+		Object ret = null;
+		if (isBinaryComparer(peek()) != null) {
+			Token binComparer = next();
+			analysisC(peek());
 		}
-		else if (check(TokenType.UINT_LITERAL) ||
-				check(TokenType.DOUBLE_LITERAL) ||
-				check(TokenType.STRING_LITERAL) ||
-				check(TokenType.CHAR_LITERAL)) {
-			// 字面量表达式
-			analyseLiteralExpr();
+		return ret;
+	}
+
+	/**
+	 * E -> C ( ==|!=|<|>|<=|>= C )?
+	 * E' -> IDENT = E
+	 *
+	 * @param front
+	 * @return
+	 * @throws CompileError
+	 */
+	private Object analysisE(Token front) throws CompileError {
+		Object ret = null;
+
+		// accept assign expression exist
+		if (front == null) {
+			if (peek().getTokenType() == TokenType.IDENT) {
+				front = next();
+
+				// assign expr
+				if (peek().getTokenType() == TokenType.ASSIGN) {
+					expect(TokenType.ASSIGN);
+					analysisE(peek());
+				}
+				// just expr
+				else {
+					analysisC(front);
+					analysisBinaryCompare();
+				}
+			} else {
+				analysisC(peek());
+				analysisBinaryCompare();
+			}
 		}
-		else throw new AnalyzeError(ErrorCode.ExprERROR, peek().getStartPos());
 
-		if (isBinaryOperator(peek())) {
-			Token opToken = next();
-			System.out.println(opToken.toString());
+		// not accept assign expression
+		else {
+			analysisC(front);
+			analysisBinaryCompare();
+		}
+		return ret;
+	}
 
-			// 检查是否有右值
-			if (!checkMayExpr(peek()))
-				throw new AnalyzeError(ErrorCode.IncompleteExpression, opToken.getEndPos());
 
-			analyseExpr();
-			System.out.println("运算符表达式");
-			// TODO do something
-		} else if (check(TokenType.AS_KW)) {
+	/**
+	 * E -> C ( ==|!=|<|>|<=|>= C )?
+	 * C -> T { +|- T }
+	 *
+	 * @param front
+	 * @return
+	 * @throws CompileError
+	 */
+	private Object analysisC(Token front) throws CompileError {
+		Object ret = null;
+
+		analysisT(front);
+
+		while (peek().getTokenType() == TokenType.PLUS ||
+				peek().getTokenType() == TokenType.MINUS) {
+			Token op = next();
+			analysisT(peek());
+		}
+		return ret;
+	}
+
+	/**
+	 * C -> T { +|- T }
+	 * T -> F { *|/ F }
+	 *
+	 * @param front
+	 * @return
+	 * @throws CompileError
+	 */
+	private Object analysisT(Token front) throws CompileError {
+		Object ret = null;
+
+		analysisF(front);
+
+		while (peek().getTokenType() == TokenType.MUL ||
+				peek().getTokenType() == TokenType.DIV) {
+			Token op = next();
+			analysisF(peek());
+		}
+
+		return ret;
+	}
+
+	/**
+	 * T -> F { *|/ F }
+	 * F -> A ( as int_ty | double_ty )?
+	 *
+	 * @param front
+	 * @return
+	 * @throws CompileError
+	 */
+	private Object analysisF(Token front) throws CompileError {
+		Object ret = null;
+
+		analysisA(front);
+
+		if (peek().getTokenType() == TokenType.AS_KW) {
 			expect(TokenType.AS_KW);
-			expect(List.of(TokenType.INT_TY, TokenType.VOID_TY, TokenType.DOUBLE_TY));
-			// TODO do something
-			System.out.println("类型转换表达式");
+			if (peek().getTokenType() == TokenType.INT_TY) {
+				next();
+			} else if (peek().getTokenType() == TokenType.DOUBLE_TY) {
+				next();
+			}
 		}
+
+		return ret;
 	}
 
 	/**
-	 * 运算符表达式
-	 */
-	private boolean isBinaryOperator(Token token) {
-		return token.getTokenType() == TokenType.PLUS || token.getTokenType() == TokenType.MINUS ||
-				token.getTokenType() == TokenType.MUL || token.getTokenType() == TokenType.DIV ||
-				token.getTokenType() == TokenType.EQ || token.getTokenType() == TokenType.NEQ ||
-				token.getTokenType() == TokenType.LT || token.getTokenType() == TokenType.GT ||
-				token.getTokenType() == TokenType.LE || token.getTokenType() == TokenType.GE;
-	}
-
-	/**
-	 * 取反表达式
-	 */
-	private void analyseNegateExpr() throws CompileError {
-		// TODO 是否需要在此处保存Expr的值并取反后填入地址
-		expect(TokenType.MINUS);
-		analyseExpr();
-
-		System.out.println("取反表达式");
-	}
-
-	/**
-	 * 赋值表达式
-	 */
-	private void analyseAssignExpr(Token name) throws CompileError {
-		expect(TokenType.ASSIGN);
-		analyseExpr();
-
-		// TODO 查表，如果表里面有，就判断类型，如果类型也合适就加指令，否则报错
-		System.out.println("赋值表达式");
-	}
-
-	/**
-	 * 函数调用表达式
-	 */
-	private void callParamList() throws CompileError {
-		// TODO 读到一个表达式应该作为函数的参数，需要进行一些操作
-		do { analyseExpr(); }
-		while (nextIf(TokenType.COMMA) != null);
-	}
-
-	private void analyseCallExpr(Token funcName) throws CompileError {
-		// TODO 查表（函数名称）
-		expect(TokenType.L_PAREN);
-
-		// 当有参数时
-		if (!check(TokenType.R_PAREN)) {
-			// TODO 获取参数后操作，除了标准库函数，其他函数在使用前必先声明
-			callParamList();
-		}
-		expect(TokenType.R_PAREN);
-
-		System.out.println("函数调用表达式");
-	}
-
-	/**
-	 * 字面量表达式
-	 */
-	private void analyseLiteralExpr() throws CompileError {
-		Token name = peek();
-		expect(List.of(
-				TokenType.UINT_LITERAL,
-				TokenType.DOUBLE_LITERAL,
-				TokenType.STRING_LITERAL
-		));
-
-		System.out.println("字面量表达式");
-		// TODO 返回值
-	}
-
-	/**
-	 * 标识符表达式
-	 */
-	private void analyseIdentExpr(Token name) throws CompileError {
-		// TODO 按照name查表，返回Ident对应的值
-		System.out.println("标识符表达式");
-	}
-
-	/**
-	 * 括号表达式
-	 */
-	private void analyseGroupExpr() throws CompileError {
-		expect(TokenType.L_PAREN);
-		analyseExpr();
-		expect(TokenType.R_PAREN);
-		System.out.println("括号表达式");
-	}
-
-	/**
-	 * @design
+	 * F -> A ( as int_ty | double_ty )?
+	 * A -> (-)? I
 	 *
-	 * S -> E ';' 								|
-	 * 		'let' IDENT ':' ty ('=' E)? ';' 	|
-	 * 		'const' IDENT ':' ty '=' E ';'		|
-	 * 		'if' E BS ('else' (BS | IFS))? 		|--> IFS
-	 * 		'while' E BS 						|
-	 * 		'return' E? ';' 					|
-	 * 		'{' S* '}' 							|--> BS
-	 * 		';'
+	 * @param front
+	 * @return
+	 * @throws CompileError
 	 */
+	private Object analysisA(Token front) throws CompileError {
+		Object ret = null;
+
+		Boolean nFlag = false;
+		if (front.getTokenType() == TokenType.MINUS) {
+			nFlag = true;
+			next();
+			front = peek();
+		}
+		analysisI(front);
+
+		return ret;
+	}
+
+
+	/**
+	 * A -> (-)? I
+	 * I -> IDENT | UINT | DOUBLE | func_call | '('E')'
+	 *
+	 * @param front
+	 * @return
+	 * @throws CompileError
+	 */
+	private Object analysisI(Token front) throws CompileError {
+		Object ret = null;
+
+		if (front.getTokenType() == TokenType.IDENT) {
+			if (peek().getTokenType() != TokenType.L_PAREN) next();
+
+			// func call
+			if (peek().getTokenType() == TokenType.L_PAREN) {
+				expect(TokenType.L_PAREN);
+
+				if (peek().getTokenType() != TokenType.R_PAREN) {
+					analysisE(peek());
+					while (nextIf(TokenType.COMMA) != null) {
+						analysisE(peek());
+					}
+					expect(TokenType.R_PAREN);
+				} else {
+					expect(TokenType.R_PAREN);
+				}
+			}
+
+			// pass -> ident
+		} else if (front.getTokenType() == TokenType.UINT_LITERAL) {
+			expect(TokenType.UINT_LITERAL);
+			// pass -> uint
+		} else if (front.getTokenType() == TokenType.DOUBLE_LITERAL) {
+			expect(TokenType.DOUBLE_LITERAL);
+			// pass -> double
+		} else if (front.getTokenType() == TokenType.L_PAREN) {
+			// group expr
+			expect(TokenType.L_PAREN);
+			analysisE(peek());
+			expect(TokenType.R_PAREN);
+		} else {
+			throw new AnalyzeError(ErrorCode.ExprERROR, peek().getEndPos());
+		}
+		return ret;
+	}
+
 
 	/**
 	 * 语句
@@ -445,11 +488,8 @@ public final class Analyser {
 	 * 表达式语句
 	 */
 	private void analyseExprStmt() throws CompileError {
-		// TODO 表达式如果有值，则丢弃值
-		System.out.println("\t\t[表达式语句]--begin");
-		analyseExpr();
+		analysisE(null);
 		expect(TokenType.SEMICOLON);
-		System.out.println("\t\t[表达式语句]--end\n");
 	}
 
 	/**
@@ -462,7 +502,7 @@ public final class Analyser {
 		expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
 		if (!check(TokenType.SEMICOLON)) {
 			expect(TokenType.ASSIGN);
-			analyseExpr();
+			analysisE(peek());
 		}
 		expect(TokenType.SEMICOLON);
 	}
@@ -473,25 +513,21 @@ public final class Analyser {
 		expect(TokenType.COLON);
 		expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
 		expect(TokenType.ASSIGN);
-		analyseExpr();
+		analysisE(peek());
 		expect(TokenType.SEMICOLON);
 	}
 
 	private void analyseDeclStmt() throws CompileError {
-		System.out.println("\t\t[声明语句]--begin");
 		if (check(TokenType.LET_KW)) isLetDeclStmt();
 		else if (check(TokenType.CONST_KW)) isConstDeclStmt();
-//		else throw new ExpectedTokenError(List.of(TokenType.LET_KW, TokenType.CONST_KW), peek());
-		System.out.println("\t\t[声明语句]--end\n");
 	}
 
 	/**
 	 * 控制流语句
 	 */
 	private void analyseIfStmt() throws CompileError {
-		System.out.println("\t\t[IF语句]--begin");
 		expect(TokenType.IF_KW);
-		analyseExpr();
+		analysisE(peek());
 		analyseBlockStmt();
 
 		if (check(TokenType.ELSE_KW)) {
@@ -500,38 +536,31 @@ public final class Analyser {
 			else if (check(TokenType.IF_KW)) analyseIfStmt();
 			else throw new ExpectedTokenError(List.of(TokenType.L_BRACE, TokenType.IF_KW), peek());
 		}
-		System.out.println("\t\t[IF语句]--end\n");
 	}
 
 	private void analyseWhileStmt() throws CompileError {
-		System.out.println("\t\t[WHILE语句]--begin");
 		expect(TokenType.WHILE_KW);
-		analyseExpr();
+		analysisE(peek());
 		analyseBlockStmt();
-		System.out.println("\t\t[WHILE语句]--end\n");
 	}
 
 	private void analyseReturnStmt() throws CompileError {
-		System.out.println("\t\t[RETURN语句]--begin");
 		expect(TokenType.RETURN_KW);
 		if (!check(TokenType.SEMICOLON)) {
-			analyseExpr();
+			analysisE(peek());
 		}
 		expect(TokenType.SEMICOLON);
-		System.out.println("\t\t[RETURN语句]--end\n");
 	}
 
 	/**
 	 * 代码块
 	 */
 	private void analyseBlockStmt() throws CompileError {
-		System.out.println("\t\t[代码块]--begin");
 		expect(TokenType.L_BRACE);
 		while (!check(TokenType.R_BRACE)) {
 			analyseStmt();
 		}
 		expect(TokenType.R_BRACE);
-		System.out.println("\t\t[代码块]--end");
 	}
 
 	/**
@@ -539,7 +568,6 @@ public final class Analyser {
 	 */
 	private void analyseEmptyStmt() throws CompileError {
 		expect(TokenType.SEMICOLON);
-		System.out.println("\t\t[空语句]");
 	}
 
 	/**
@@ -553,12 +581,13 @@ public final class Analyser {
 	}
 
 	private void analyseFunctionParamList() throws CompileError {
-		do { analyseFunctionParam(); }
+		do {
+			analyseFunctionParam();
+		}
 		while (nextIf(TokenType.COMMA) != null);
 	}
 
 	private void analyseFunction() throws CompileError {
-		System.out.println("\t\t-----<<函数>>-----begin");
 		expect(TokenType.FN_KW);
 		expect(TokenType.IDENT);
 		expect(TokenType.L_PAREN);
@@ -568,10 +597,8 @@ public final class Analyser {
 
 		expect(TokenType.R_PAREN);
 		expect(TokenType.ARROW);
-		System.out.println(peek().toStringAlt());
 		expect(List.of(TokenType.VOID_TY, TokenType.INT_TY, TokenType.DOUBLE_TY));
 		analyseBlockStmt();
-		System.out.println("\t\t-----<<函数>>-----end\n");
 	}
 
 	/**
@@ -582,11 +609,10 @@ public final class Analyser {
 			while (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) {
 				analyseDeclStmt();
 			}
-			System.out.println("<声明结束，进入函数模块>");
+
 			while (check(TokenType.FN_KW)) {
 				analyseFunction();
 			}
 		}
 	}
-
 }
