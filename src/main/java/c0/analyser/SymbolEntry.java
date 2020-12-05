@@ -1,89 +1,62 @@
 package c0.analyser;
 
+import c0.tokenizer.TokenType;
+import c0.util.SymbolType;
+
 public class SymbolEntry {
 	String name;
+	TokenType type;
+	SymbolType symbolType;
+	int offset;
+	int deep;
+	Object value;
 	boolean isConstant;
 	boolean isInitialized;
-	int type;
-	int offset;
-	int funcIndex;
-	Object value;
 
 	/**
-	 * @param name 符号名称
-	 * @param isConstant 符号对应变量、函数是否为const
-	 * @param isInitialized 符号对应变量、函数是否被声明（被定义）
-	 * @param type 符号对应类型（变量、函数...）
-	 * @param offset 符号在伪栈中的偏移量
+	 * 符号实体
+	 *
+	 * @param name 符号名
+	 * @param type 符号类型
+	 * @param offset 符号在栈中的偏移
+	 * @param value 符号的值
+	 * @param isConstant 符号是否为const
+	 * @param isInitialized 符号是否被初始化
 	 */
-	public SymbolEntry(String name, boolean isConstant, boolean isInitialized, int type, int offset, Object value) {
+	public SymbolEntry(String name, TokenType type, SymbolType symbolType, int offset, int deep, Object value, boolean isConstant, boolean isInitialized) {
 		this.name = name;
-		this.isConstant = isConstant;
-		this.isInitialized = isInitialized;
 		this.type = type;
+		this.symbolType = symbolType;
 		this.offset = offset;
-		this.funcIndex = -1;
+		this.deep = deep;
 		this.value = value;
-	}
-
-	/**
-	 * @param name
-	 * @param isConstant
-	 * @param isInitialized
-	 * @param type
-	 * @param offset
-	 * @param funcIndex 在funcTable中的index映射
-	 * @param value
-	 */
-	public SymbolEntry(String name, boolean isConstant, boolean isInitialized, int type, int offset, int funcIndex, Object value) {
-		this.name = name;
 		this.isConstant = isConstant;
 		this.isInitialized = isInitialized;
-		this.type = type;
-		this.offset = offset;
-		this.funcIndex = funcIndex;
-		this.value = value;
 	}
 
-	/* setter & getter */
-	public int getOffset() {
-		return offset;
-	}
-
-	public void setOffset(int offset) {
-		this.offset = offset;
-	}
-
-	public boolean isConstant() {
-		return isConstant;
-	}
-
-	public void setConstant(boolean isConstant) {
-		this.isConstant = isConstant;
-	}
-
-	public boolean isInitialized() {
-		return isInitialized;
-	}
-
-	public void setInitialized(boolean isInitialized) {
-		this.isInitialized = isInitialized;
-	}
-
-	public int getType() {
-		return type;
-	}
-
-	public void setType(int type) {
-		this.type = type;
-	}
-
+	/* getter & setter */
 	public String getName() {
 		return name;
 	}
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public TokenType getType() {
+		return type;
+	}
+
+	public void setType(TokenType type) {
+		this.type = type;
+	}
+
+	public int getOffset() {
+		return offset;
+	}
+
+	public void setOffset(int offset) {
+		this.offset = offset;
 	}
 
 	public Object getValue() {
@@ -94,12 +67,20 @@ public class SymbolEntry {
 		this.value = value;
 	}
 
-	public int getFuncIndex() {
-		return funcIndex;
+	public boolean isConstant() {
+		return isConstant;
 	}
 
-	public void setFuncIndex(int funcIndex) {
-		this.funcIndex = funcIndex;
+	public void setConstant(boolean constant) {
+		isConstant = constant;
+	}
+
+	public boolean isInitialized() {
+		return isInitialized;
+	}
+
+	public void setInitialized(boolean initialized) {
+		isInitialized = initialized;
 	}
 
 	@Override

@@ -5,7 +5,8 @@ public enum ErrorCode {
 
 	AssignToConstant,
 	ConstantNeedValue,
-	DuplicateDeclaration,            	// 重复定义					[语法分析]
+	DuplicateDeclaration,            	// 变量重复定义				[语义分析]
+	DuplicateParamName,					// 参数命名重复				[语义分析]
 	EOF,
 	InvalidInput,                    	// 无效输入					[词法分析]
 	InvalidIdentifier,               	// 无效标识符					[词法分析]
