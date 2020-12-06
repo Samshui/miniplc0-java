@@ -46,6 +46,7 @@ public final class Analyser {
 	}
 
 	public List<Instruction> analyse() throws CompileError {
+		System.exit(-1);
 		analyseProgramme();
 		next();
 		return instructions;
