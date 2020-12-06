@@ -1,11 +1,11 @@
-package c0.analyser;
+package c0.Entry;
 
 import c0.error.AnalyzeError;
 import c0.error.ErrorCode;
 import c0.instruction.Instruction;
-import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.util.Pos;
+import c0.util.SymbolType;
 
 import java.util.ArrayList;
 
@@ -15,17 +15,15 @@ public class FuncEntry {
 	private ArrayList<Instruction> instructions;
 	private ArrayList<SymbolEntry> symbolTable;
 	private ArrayList<Param> params;
-	private int paramSlotCount;
-	private int varSlotCount;
+	private int paramSlotCount = 0;
+	private int varSlotCount = 0;
 
 	public FuncEntry(String funcName) {
 		this.funcName = funcName;
-		this.funcType = null;
+		this.funcType = TokenType.VOID_TY;
 		this.instructions = new ArrayList<>();
 		this.params = new ArrayList<>();
 		this.symbolTable = new ArrayList<>();
-		this.paramSlotCount = 0;
-		this.varSlotCount = 0;
 	}
 
 	// getter & setter
@@ -88,7 +86,7 @@ public class FuncEntry {
 		if (searchParam(name) != -1) {
 			throw new AnalyzeError(ErrorCode.DuplicateParamName, currentPos);
 		}
-		this.params.add(new Param(name, type));
+		this.params.add(new Param(name, type, paramSlotCount++));
 	}
 
 	/**
@@ -99,21 +97,51 @@ public class FuncEntry {
 	 */
 	public int searchParam(String name) {
 		for (int i = 0; i < this.params.size(); i++)
-			if (this.params.get(i).paramName.equals(name))
+			if (this.params.get(i).getParamName().equals(name))
 				return i;
 		return -1;
 	}
-}
 
-/**
- * 参数类
- */
-class Param {
-	public String paramName;
-	public TokenType paramType;
+	/**
+	 * 增加局部变量
+	 *
+	 * @param name
+	 * @param type
+	 * @param symbolType
+	 * @param deep
+	 * @param isConstant
+	 * @param isInitialized
+	 * @param currentPos
+	 * @throws AnalyzeError
+	 */
+	public void addSymbol(String name,
+						  TokenType type, SymbolType symbolType,
+						  int deep, boolean isConstant, boolean isInitialized,
+						  Pos currentPos) throws AnalyzeError {
+		if (searchSymbol(name) != null) {
+			throw new AnalyzeError(ErrorCode.DuplicateName, currentPos);
+		}
+		SymbolEntry symbolEntry = new SymbolEntry(name, type, symbolType, deep, isConstant, isInitialized);
 
-	public Param(String paramName, TokenType paramType) {
-		this.paramName = paramName;
-		this.paramType = paramType;
+		// 函数的局部变量偏移
+		symbolEntry.setOff(this.varSlotCount);
+		this.symbolTable.add(symbolEntry);
+
+		// 局部偏移增加
+		this.varSlotCount++;
+	}
+
+	/**
+	 * 查找函数中的符号
+	 *
+	 * @param name
+	 * @return
+	 */
+	public SymbolEntry searchSymbol(String name) {
+		for (SymbolEntry s : this.symbolTable) {
+			if (s.getName().equals(name)) return s;
+		}
+		return null;
 	}
 }
+

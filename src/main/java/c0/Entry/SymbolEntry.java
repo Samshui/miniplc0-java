@@ -1,4 +1,4 @@
-package c0.analyser;
+package c0.Entry;
 
 import c0.tokenizer.TokenType;
 import c0.util.SymbolType;
@@ -7,9 +7,8 @@ public class SymbolEntry {
 	String name;
 	TokenType type;
 	SymbolType symbolType;
-	int offset;
+	long off = -1;
 	int deep;
-	Object value;
 	boolean isConstant;
 	boolean isInitialized;
 
@@ -18,18 +17,14 @@ public class SymbolEntry {
 	 *
 	 * @param name 符号名
 	 * @param type 符号类型
-	 * @param offset 符号在栈中的偏移
-	 * @param value 符号的值
 	 * @param isConstant 符号是否为const
 	 * @param isInitialized 符号是否被初始化
 	 */
-	public SymbolEntry(String name, TokenType type, SymbolType symbolType, int offset, int deep, Object value, boolean isConstant, boolean isInitialized) {
+	public SymbolEntry(String name, TokenType type, SymbolType symbolType, int deep, boolean isConstant, boolean isInitialized) {
 		this.name = name;
 		this.type = type;
 		this.symbolType = symbolType;
-		this.offset = offset;
 		this.deep = deep;
-		this.value = value;
 		this.isConstant = isConstant;
 		this.isInitialized = isInitialized;
 	}
@@ -51,22 +46,6 @@ public class SymbolEntry {
 		this.type = type;
 	}
 
-	public int getOffset() {
-		return offset;
-	}
-
-	public void setOffset(int offset) {
-		this.offset = offset;
-	}
-
-	public Object getValue() {
-		return value;
-	}
-
-	public void setValue(Object value) {
-		this.value = value;
-	}
-
 	public boolean isConstant() {
 		return isConstant;
 	}
@@ -83,6 +62,30 @@ public class SymbolEntry {
 		isInitialized = initialized;
 	}
 
+	public SymbolType getSymbolType() {
+		return symbolType;
+	}
+
+	public void setSymbolType(SymbolType symbolType) {
+		this.symbolType = symbolType;
+	}
+
+	public long getOff() {
+		return off;
+	}
+
+	public void setOff(long off) {
+		this.off = off;
+	}
+
+	public int getDeep() {
+		return deep;
+	}
+
+	public void setDeep(int deep) {
+		this.deep = deep;
+	}
+
 	@Override
 	public String toString() {
 		return new StringBuilder()
@@ -90,7 +93,7 @@ public class SymbolEntry {
 				.append("\ttype:" + type)
 				.append("\tis_const:" + isConstant)
 				.append("\tis_init:" + isInitialized)
-				.append("\toffset:" + offset)
+				.append("\toff:" + off)
 				.toString();
 	}
 }

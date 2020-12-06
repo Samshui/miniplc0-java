@@ -3,22 +3,19 @@ package c0.instruction;
 import java.util.Objects;
 
 public class Instruction {
-	Number x;
+	long off;
+	int len;
 	private Operation opt;
 
 	public Instruction(Operation opt) {
 		this.opt = opt;
-		this.x = null;
+		this.len = 1;
 	}
 
-	public Instruction(Operation opt, Integer x) {
+	public Instruction(Operation opt, long off) {
+		this.off = off;
 		this.opt = opt;
-		this.x = x;
-	}
-
-	public Instruction(Operation opt, Double x) {
-		this.opt = opt;
-		this.x = x;
+		this.len = 2;
 	}
 
 	@Override
@@ -28,12 +25,20 @@ public class Instruction {
 		if (o == null || getClass() != o.getClass())
 			return false;
 		Instruction that = (Instruction) o;
-		return opt == that.opt && Objects.equals(x, that.x);
+		return opt == that.opt && Objects.equals(off, that.off);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(opt, x);
+		return Objects.hash(opt, off);
+	}
+
+	public long getOff() {
+		return off;
+	}
+
+	public void setOff(long off) {
+		this.off = off;
 	}
 
 	public Operation getOpt() {
@@ -42,14 +47,6 @@ public class Instruction {
 
 	public void setOpt(Operation opt) {
 		this.opt = opt;
-	}
-
-	public Number getX() {
-		return x;
-	}
-
-	public void setX(Integer x) {
-		this.x = x;
 	}
 
 	@Override

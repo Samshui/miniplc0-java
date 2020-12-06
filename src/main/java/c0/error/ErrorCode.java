@@ -5,8 +5,11 @@ public enum ErrorCode {
 
 	AssignToConstant,
 	ConstantNeedValue,
-	DuplicateDeclaration,            	// 变量重复定义				[语义分析]
+	CannotGetOff,						// 无法获取偏移量				[语义分析]
+	DuplicateGlobalVar,            		// 变量重复定义				[语义分析]
 	DuplicateParamName,					// 参数命名重复				[语义分析]
+	DuplicateFuncName,					// 函数命名重复				[语义分析]
+	DuplicateName,						// 符号命名重复
 	EOF,
 	InvalidInput,                    	// 无效输入					[词法分析]
 	InvalidIdentifier,               	// 无效标识符					[词法分析]
@@ -21,7 +24,7 @@ public enum ErrorCode {
 	StreamError,
 	NeedIdentifier,
 	NoSemicolon,
-	NotDeclared,
+	NotDeclared,						// 符号未声明					[语义分析]
 	NotInitialized,
 	InvalidAssignment,
 	InvalidPrint,
