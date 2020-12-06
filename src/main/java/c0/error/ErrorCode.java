@@ -22,6 +22,8 @@ public enum ErrorCode {
 	IncompleteString,                	// 字符串常量左右引号无法对应	[词法分析]
 	IncompleteChar,                    	// 字符常量左右引号无法对应		[词法分析]
 	StreamError,
+	ShouldReturn,						// 函数需要返回值				[语义分析]
+	ShouldNotReturn,					// 函数不需要返回值			[语义分析]
 	NeedIdentifier,
 	NoSemicolon,
 	NotDeclared,						// 符号未声明					[语义分析]

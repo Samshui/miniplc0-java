@@ -21,6 +21,11 @@ public final class Analyser {
 	ArrayList<Instruction> instructions;
 
 	/**
+	 * 当前函数是否有return
+	 */
+	boolean funcReturn = false;
+
+	/**
 	 * 当前偷看的 token
 	 */
 	Token peekedToken = null;
@@ -46,7 +51,6 @@ public final class Analyser {
 	}
 
 	public List<Instruction> analyse() throws CompileError {
-		System.exit(-1);
 		analyseProgramme();
 		next();
 		return instructions;
@@ -549,7 +553,21 @@ public final class Analyser {
 
 	private void analyseReturnStmt() throws CompileError {
 		expect(TokenType.RETURN_KW);
-		if (!check(TokenType.SEMICOLON)) {
+
+		// 此时函数有返回值
+		funcReturn = true;
+
+		// 如果该函数为void类型，则不可以接返回值
+		if (table.getFuncTable().get(table.getFuncTable().size() - 1).getFuncType() == TokenType.VOID_TY) {
+			if (peek().getTokenType() != TokenType.SEMICOLON) {
+				throw new AnalyzeError(ErrorCode.ShouldNotReturn, peek().getStartPos());
+			}
+		}
+		// 如果函数类型不为void，就需要返回值
+		else {
+			if (peek().getTokenType() == TokenType.SEMICOLON) {
+				throw new AnalyzeError(ErrorCode.ShouldReturn, peek().getStartPos());
+			}
 			analysisE(peek());
 		}
 		expect(TokenType.SEMICOLON);
@@ -558,8 +576,9 @@ public final class Analyser {
 	/**
 	 * 代码块
 	 */
-	private void analyseBlockStmt() throws CompileError {
+	private List<Instruction> analyseBlockStmt() throws CompileError {
 		expect(TokenType.L_BRACE);
+		List<Instruction> instructions = new ArrayList<>();
 
 		// 进入块后，deep + 1
 		this.deep ++;
@@ -569,8 +588,18 @@ public final class Analyser {
 		}
 		expect(TokenType.R_BRACE);
 
+		// 当前deep > 1时，表示此时处于函数内，有返回则funcReturn应该为true
+		if (deep > 1) {
+			if (table.getFuncTable()
+					.get(table.getFuncTable().size() - 1)
+					.getFuncType() != TokenType.VOID_TY && !funcReturn) {
+				throw new AnalyzeError(ErrorCode.ShouldReturn, peek().getStartPos());
+			}
+		}
+
 		// 退出块后，deep - 1
 		this.deep --;
+		return instructions;
 	}
 
 	/**
@@ -632,6 +661,9 @@ public final class Analyser {
 
 		// 进入该函数实体中
 		analyseBlockStmt();
+
+		// 退出函数体后，重置funcRet
+		funcReturn = false;
 	}
 
 	/**

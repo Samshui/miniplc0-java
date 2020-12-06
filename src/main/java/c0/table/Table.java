@@ -212,4 +212,20 @@ public class Table {
 		}
 		return null;
 	}
+
+	public List<FuncEntry> getFuncTable() {
+		return funcTable;
+	}
+
+	public void setFuncTable(List<FuncEntry> funcTable) {
+		this.funcTable = funcTable;
+	}
+
+	public List<SymbolEntry> getSymTable() {
+		return symTable;
+	}
+
+	public void setSymTable(List<SymbolEntry> symTable) {
+		this.symTable = symTable;
+	}
 }
