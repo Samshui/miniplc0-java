@@ -150,7 +150,7 @@ public class Tokenizer {
 		it.nextChar();
 
 		// 不允许 _1as 出现
-		if (Character.isDigit(it.peekChar())) {
+		if (Character.isDigit(it.peekChar()) && isIdent) {
 			throw new TokenizeError(ErrorCode.InvalidIdentifier, it.previousPos());
 		}
 

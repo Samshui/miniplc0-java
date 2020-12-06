@@ -389,9 +389,11 @@ public final class Analyser {
 
 		} else if (front.getTokenType() == TokenType.UINT_LITERAL) {
 			Token getUint = expect(TokenType.UINT_LITERAL);
+			Integer i = (Integer) getUint.getValue();
+			long iTOl = i;
 
 			// add PUSH uint
-			instructions.add(new Instruction(Operation.PUSH, (long) getUint.getValue()));
+			instructions.add(new Instruction(Operation.PUSH, iTOl));
 		} else if (front.getTokenType() == TokenType.DOUBLE_LITERAL) {
 			Token getDouble = expect(TokenType.DOUBLE_LITERAL);
 
