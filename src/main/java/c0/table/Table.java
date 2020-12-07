@@ -98,7 +98,7 @@ public class Table {
 			throw new AnalyzeError(ErrorCode.DuplicateGlobalVar, currentPos);
 		}
 		this.symTable
-				.add(new SymbolEntry(name, type, symbolType, deep, isConstant, isInitialized));
+				.add(new SymbolEntry(name, type, symbolType, deep, (long) this.symTable.size(), isConstant, isInitialized));
 	}
 
 	/**
@@ -227,5 +227,14 @@ public class Table {
 
 	public void setSymTable(List<SymbolEntry> symTable) {
 		this.symTable = symTable;
+	}
+
+	@Override
+	public String toString() {
+		String tableString = new String("");
+		for (SymbolEntry s:symTable) tableString += s.toString();
+		tableString += "\n";
+		for (FuncEntry f:funcTable) tableString += f.toString();
+		return tableString;
 	}
 }

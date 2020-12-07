@@ -36,4 +36,13 @@ public class Param {
 	public void setParamOff(int paramOff) {
 		this.paramOff = paramOff;
 	}
+
+	@Override
+	public String toString() {
+		return new StringBuilder()
+				.append("paramName:[" + paramName +"]")
+				.append("\tparamType:" + paramType.toString())
+				.append("\tparamOff:" + paramOff)
+				.toString();
+	}
 }

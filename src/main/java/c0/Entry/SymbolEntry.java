@@ -29,6 +29,26 @@ public class SymbolEntry {
 		this.isInitialized = isInitialized;
 	}
 
+	/**
+	 *
+	 * @param name
+	 * @param type
+	 * @param symbolType
+	 * @param deep
+	 * @param off
+	 * @param isConstant
+	 * @param isInitialized
+	 */
+	public SymbolEntry(String name, TokenType type, SymbolType symbolType, int deep, long off, boolean isConstant, boolean isInitialized) {
+		this.name = name;
+		this.type = type;
+		this.symbolType = symbolType;
+		this.deep = deep;
+		this.off = off;
+		this.isConstant = isConstant;
+		this.isInitialized = isInitialized;
+	}
+
 	/* getter & setter */
 	public String getName() {
 		return name;
@@ -90,10 +110,12 @@ public class SymbolEntry {
 	public String toString() {
 		return new StringBuilder()
 				.append("["+ name + "]:")
-				.append("\ttype:" + type)
+				.append("\ttype:" + type.toString())
+				.append("\tsymType:" + symbolType.toString())
 				.append("\tis_const:" + isConstant)
 				.append("\tis_init:" + isInitialized)
 				.append("\toff:" + off)
+				.append("\tdeep:" + deep + "\n")
 				.toString();
 	}
 }

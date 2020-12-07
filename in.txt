@@ -1,4 +1,18 @@
+let i:int = 0;
+const j:int = 1;
+
+fn f1(x:int, y:int, z:int) -> int {
+    "123";
+    "123";
+    return x;
+}
+
 fn main() -> void {
     let i: int = 1;
-    let i: int = 2;
+    if i < 2 {
+        let i: int = 2;
+        let j: int = 3;
+    }
+    let m: double = 4.000;
+    "111";
 }

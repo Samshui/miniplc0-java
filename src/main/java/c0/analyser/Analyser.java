@@ -53,6 +53,7 @@ public final class Analyser {
 	public List<Instruction> analyse() throws CompileError {
 		analyseProgramme();
 		next();
+		System.out.println(table.toString());
 		return instructions;
 	}
 
@@ -205,6 +206,16 @@ public final class Analyser {
 		}
 		return null;
 	}
+
+	// todo - list
+	/*
+	1. 调取到一个ident时指令操作
+	2. 二值运算的指令操作
+	3. 二值比较的指令操作
+	4. 赋值时type是否对应的处理
+	5. 调用函数时的指令操作
+	6. if和while的跳转处理
+	 */
 
 	/**
 	 * 二元比较

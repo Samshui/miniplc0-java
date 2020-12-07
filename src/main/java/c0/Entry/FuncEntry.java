@@ -118,7 +118,8 @@ public class FuncEntry {
 						  TokenType type, SymbolType symbolType,
 						  int deep, boolean isConstant, boolean isInitialized,
 						  Pos currentPos) throws AnalyzeError {
-		if (searchSymbol(name) != null) {
+		// 如果深度不一样，可以允许重名
+		if (searchSymbol(name) != null && searchSymbol(name).deep == deep) {
 			throw new AnalyzeError(ErrorCode.DuplicateName, currentPos);
 		}
 		SymbolEntry symbolEntry = new SymbolEntry(name, type, symbolType, deep, isConstant, isInitialized);
@@ -142,6 +143,30 @@ public class FuncEntry {
 			if (s.getName().equals(name)) return s;
 		}
 		return null;
+	}
+
+	@Override
+	public String toString() {
+		String sSymbol = new String("");
+		String sParam = new String("");
+
+		for (SymbolEntry s: symbolTable) {
+			sSymbol = sSymbol + s.toString();
+		}
+
+		for (Param p:params) {
+			sParam = sParam + p.toString() + "\n";
+		}
+
+		return new StringBuilder()
+				.append("funcName:[" + funcName + "]")
+				.append("\tfuncType:" + funcType.toString() + "")
+				.append("\tvarSlotCount:" + varSlotCount + "")
+				.append("\tparamSlotCount:" + paramSlotCount + "\n")
+				.append("funcSymbol:\n").append(sSymbol)
+				.append("funcParam:\n").append(sParam)
+				.append("\n")
+				.toString();
 	}
 }
 
