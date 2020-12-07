@@ -1,4 +1,4 @@
-fn main() -> int {
-    "12345;
-    "return;
+fn main() -> void {
+    let i: int = 1;
+    let i: int = 2;
 }
