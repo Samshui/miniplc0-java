@@ -420,7 +420,7 @@ public final class Analyser {
 			instructions.add(new Instruction(Operation.PUSH, (long) ((char) front.getValue())));
 		} else if (front.getTokenType() == TokenType.L_PAREN) {
 			expect(TokenType.L_PAREN);
-			Object groupRet = analysisE(peek());
+			analysisE(peek());
 			expect(TokenType.R_PAREN);
 
 			// group expr
@@ -437,6 +437,11 @@ public final class Analyser {
 	 * 语句
 	 */
 	private void analyseStmt() throws CompileError {
+		// 打补丁 -- 针对else前无if匹配的情况
+		if (check(TokenType.ELSE_KW)) {
+			throw new AnalyzeError(ErrorCode.IfElseNotMatch, peek().getStartPos());
+		}
+
 		while (checkMayStmt(peek())) {
 			if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) analyseDeclStmt(false);
 			else if (check(TokenType.IF_KW)) analyseIfStmt();
@@ -463,7 +468,9 @@ public final class Analyser {
 		expect(TokenType.LET_KW);
 		Token nameToken = expect(TokenType.IDENT);
 		expect(TokenType.COLON);
-		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
+
+		// 对变量置类型只允许int和double
+		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY));
 
 		boolean isInit = false;
 
@@ -499,7 +506,7 @@ public final class Analyser {
 		expect(TokenType.CONST_KW);
 		Token nameToken = expect(TokenType.IDENT);
 		expect(TokenType.COLON);
-		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY, TokenType.VOID_TY));
+		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY));
 		expect(TokenType.ASSIGN);
 
 		// todo deal with -- generate instructions
@@ -537,11 +544,21 @@ public final class Analyser {
 		analysisE(peek());
 		analyseBlockStmt();
 
-		if (check(TokenType.ELSE_KW)) {
+		// while to get else_kw
+		while (check(TokenType.ELSE_KW)) {
 			expect(TokenType.ELSE_KW);
-			if (check(TokenType.L_BRACE)) analyseBlockStmt();
-			else if (check(TokenType.IF_KW)) analyseIfStmt();
-			else throw new ExpectedTokenError(List.of(TokenType.L_BRACE, TokenType.IF_KW), peek());
+
+			// if bool {} else if bool {}
+			if (check(TokenType.IF_KW)) {
+				expect(TokenType.IF_KW);
+				analysisE(peek());
+				analyseBlockStmt();
+			}
+			// if bool {} else {}
+			else {
+				analyseBlockStmt();
+				break;
+			}
 		}
 	}
 
@@ -578,6 +595,11 @@ public final class Analyser {
 	 */
 	private List<Instruction> analyseBlockStmt() throws CompileError {
 		expect(TokenType.L_BRACE);
+
+		// 打个补丁 - 读到下一个token为空时
+		if (peek().getTokenType().ordinal() == 40)
+			throw new AnalyzeError(ErrorCode.NotComplete, peek().getStartPos());
+
 		List<Instruction> instructions = new ArrayList<>();
 
 		// 进入块后，deep + 1
@@ -627,6 +649,7 @@ public final class Analyser {
 
 		// 向函数实体加入形参信息
 		table.addParam((String) paramName.getValue(), paramType, paramName.getStartPos());
+
 	}
 
 	private void analyseFunctionParamList() throws CompileError {

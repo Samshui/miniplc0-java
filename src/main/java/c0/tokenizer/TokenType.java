@@ -172,4 +172,8 @@ public enum TokenType {
 				return "InvalidToken";
 		}
 	}
+//
+//	public static boolean isLegalToken(Token token) {
+//		if (token.getTokenType() == )
+//	}
 }
