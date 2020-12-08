@@ -25,6 +25,7 @@ public enum ErrorCode {
 	StreamError,
 	ShouldReturn,						// 函数需要返回值				[语义分析]
 	ShouldNotReturn,					// 函数不需要返回值			[语义分析]
+	SymbolShouldInGlobal,				// 符号应在全局				[语义分析]
 	NeedIdentifier,
 	NoSemicolon,
 	NotComplete, 						// 不完整					[语义分析]

@@ -1,18 +1,24 @@
-let i:int = 0;
-const j:int = 1;
+let i1:int = 9;
+let i2:int = 9;
 
-fn f1(x:int, y:int, z:int) -> int {
-    "123";
-    "123";
-    return x;
+fn f1(x:int, y:int) -> int {
+    let j:int = 9;
+    {
+        let x:int = 0;
+    }
+    return 0;
 }
 
+fn f2() -> void {}
+
+fn f3(t:double) -> void { }
+
+fn f4(m:int) -> int { return 0; }
+
+let i3:int = 9;
+let i4:int = 9;
+let i5:int = 9;
+
 fn main() -> void {
-    let i: int = 1;
-    if i < 2 {
-        let i: int = 2;
-        let j: int = 3;
-    }
-    let m: double = 4.000;
-    "111";
+    let i:int = i5;
 }

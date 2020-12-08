@@ -4,8 +4,10 @@ import c0.Entry.FuncEntry;
 import c0.Entry.SymbolEntry;
 import c0.error.AnalyzeError;
 import c0.error.ErrorCode;
+import c0.instruction.Instruction;
 import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
+import c0.util.MyPair;
 import c0.util.Pos;
 import c0.util.SymbolType;
 
@@ -14,14 +16,16 @@ import java.util.List;
 
 public class Table {
 	private List<FuncEntry> funcTable;
-	private List<SymbolEntry> symTable;
+	private List<SymbolEntry> globalSymTable;
+	private List<Instruction> globalInstructions;
 
 	/**
 	 * 构造函数
 	 */
 	public Table() {
 		this.funcTable = new ArrayList<>();
-		this.symTable = new ArrayList<>();
+		this.globalSymTable = new ArrayList<>();
+		this.globalInstructions = new ArrayList<>();
 	}
 
 	/**
@@ -44,9 +48,11 @@ public class Table {
 	 * @param type
 	 */
 	public void addFuncType(TokenType type) {
-		this.funcTable
-				.get(this.funcTable.size() - 1)
-				.setFuncType(type);
+		FuncEntry getFunc = this.funcTable.get(this.funcTable.size() - 1);
+		if (type != TokenType.VOID_TY) {
+			getFunc.pushTypeSlot(type);
+		}
+		getFunc.setFuncType(type);
 	}
 
 	/**
@@ -94,11 +100,9 @@ public class Table {
 								int deep, Pos currentPos,
 								boolean isConstant, boolean isInitialized) throws AnalyzeError {
 		if (symExist(name) != null && symExist(name).getType() != TokenType.STRING_LITERAL) {
-			// todo Pos need value
 			throw new AnalyzeError(ErrorCode.DuplicateGlobalVar, currentPos);
 		}
-		this.symTable
-				.add(new SymbolEntry(name, type, symbolType, deep, (long) this.symTable.size(), isConstant, isInitialized));
+		this.globalSymTable.add(new SymbolEntry(name, type, symbolType, deep, (long) this.globalSymTable.size(), isConstant, isInitialized));
 	}
 
 	/**
@@ -151,17 +155,45 @@ public class Table {
 	}
 
 	/**
-	 * 搜索该名称符号是否存在
+	 * 搜索该名称符号是否存在全局中
 	 *
 	 * @param name
 	 * @return
 	 */
 	private SymbolEntry symExist(String name) {
-		for (SymbolEntry s : this.symTable) {
+		for (SymbolEntry s : this.globalSymTable) {
 			if (s.getName().equals(name)) return s;
 		}
 		return null;
 	}
+
+	/**
+	 * 针对一个符号从当前函数查到全局符号表
+	 *
+	 * @param name
+	 * @param deep
+	 * @param pos
+	 * @return
+	 * @throws AnalyzeError
+	 */
+	public MyPair searchOneSymbolFromLocalToGlobal(String name, int deep, Pos pos) throws AnalyzeError {
+		Boolean isGlobal = new Boolean(false);
+		Object getSymbol = new Object();
+
+		if (deep > 1) {
+			getSymbol = this.funcTable.get(this.funcTable.size() - 1).searchSymbolByDeepIterate(name, deep, pos);
+			if (getSymbol == null) {
+				// 局部搜索不到该符号，转去全局搜索
+				getSymbol = symExist(name);
+			}
+		} else {
+			// 全局赋值语句会用到
+			isGlobal = Boolean.valueOf(true);
+			getSymbol = symExist(name);
+		}
+		return new MyPair(getSymbol, isGlobal);
+	}
+
 
 	/**
 	 * 查找全局变量（偏移）
@@ -171,7 +203,7 @@ public class Table {
 	 */
 	public SymbolEntry getGlobalVar(String name) {
 		int off = 0;
-		for (SymbolEntry s: this.symTable) {
+		for (SymbolEntry s: this.globalSymTable) {
 			// 跳过时增加偏移量
 			off++;
 
@@ -213,6 +245,32 @@ public class Table {
 		return null;
 	}
 
+	public long getGlobalSymbolOff(String name) {
+		for (SymbolEntry s:this.globalSymTable) {
+			if (s.getName().equals(name)) return s.getOff();
+		}
+		return (long) -1;
+	}
+
+
+	/* 指令类 */
+
+	/**
+	 * 给当前函数添加指令集
+	 *
+	 * @param instructions
+	 */
+	public void addInstructionsToFunc(List<Instruction> instructions) {
+		FuncEntry funcEntry = this.funcTable.get(this.funcTable.size() - 1);
+		funcEntry.addAllInstructions(instructions);
+	}
+
+	public void addOneInstructionToFunc(Instruction instruction) {
+		FuncEntry funcEntry = this.funcTable.get(this.funcTable.size() - 1);
+		funcEntry.addOneInstruction(instruction);
+	}
+
+	/* setter & getter */
 	public List<FuncEntry> getFuncTable() {
 		return funcTable;
 	}
@@ -221,18 +279,26 @@ public class Table {
 		this.funcTable = funcTable;
 	}
 
-	public List<SymbolEntry> getSymTable() {
-		return symTable;
+	public List<SymbolEntry> getGlobalSymTable() {
+		return globalSymTable;
 	}
 
-	public void setSymTable(List<SymbolEntry> symTable) {
-		this.symTable = symTable;
+	public void setGlobalSymTable(List<SymbolEntry> globalSymTable) {
+		this.globalSymTable = globalSymTable;
+	}
+
+	public List<Instruction> getGlobalInstructions() {
+		return globalInstructions;
+	}
+
+	public void setGlobalInstructions(List<Instruction> globalInstructions) {
+		this.globalInstructions = globalInstructions;
 	}
 
 	@Override
 	public String toString() {
 		String tableString = new String("");
-		for (SymbolEntry s:symTable) tableString += s.toString();
+		for (SymbolEntry s: globalSymTable) tableString += s.toString();
 		tableString += "\n";
 		for (FuncEntry f:funcTable) tableString += f.toString();
 		return tableString;

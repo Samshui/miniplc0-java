@@ -8,13 +8,13 @@ import c0.util.Pos;
 import c0.util.SymbolType;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class FuncEntry {
 	private String funcName;
 	private TokenType funcType;
-	private ArrayList<Instruction> instructions;
-	private ArrayList<SymbolEntry> symbolTable;
-	private ArrayList<Param> params;
+	private List<Instruction> instructions;
+	private List<SymbolEntry> symbolTable;
 	private int paramSlotCount = 0;
 	private int varSlotCount = 0;
 
@@ -22,7 +22,6 @@ public class FuncEntry {
 		this.funcName = funcName;
 		this.funcType = TokenType.VOID_TY;
 		this.instructions = new ArrayList<>();
-		this.params = new ArrayList<>();
 		this.symbolTable = new ArrayList<>();
 	}
 
@@ -35,7 +34,7 @@ public class FuncEntry {
 		this.funcName = funcName;
 	}
 
-	public ArrayList<SymbolEntry> getSymbolTable() {
+	public List<SymbolEntry> getSymbolTable() {
 		return symbolTable;
 	}
 
@@ -51,7 +50,7 @@ public class FuncEntry {
 		this.funcType = funcType;
 	}
 
-	public ArrayList<Instruction> getInstructions() {
+	public List<Instruction> getInstructions() {
 		return instructions;
 	}
 
@@ -76,6 +75,16 @@ public class FuncEntry {
 	}
 
 	/**
+	 * 插入返回值占位符
+	 */
+	public void pushTypeSlot(TokenType type) {
+		this.symbolTable.add(0, new SymbolEntry(type));
+		for (int i = 1; i <= this.paramSlotCount; i++) {
+			this.symbolTable.get(i).off += 1;
+		}
+	}
+
+	/**
 	 * 增加参数
 	 *
 	 * @param name
@@ -86,7 +95,7 @@ public class FuncEntry {
 		if (searchParam(name) != -1) {
 			throw new AnalyzeError(ErrorCode.DuplicateParamName, currentPos);
 		}
-		this.params.add(new Param(name, type, paramSlotCount++));
+		this.symbolTable.add(new SymbolEntry(name, type, SymbolType.PARAM, 2, paramSlotCount++, false, true));
 	}
 
 	/**
@@ -96,8 +105,8 @@ public class FuncEntry {
 	 * @return
 	 */
 	public int searchParam(String name) {
-		for (int i = 0; i < this.params.size(); i++)
-			if (this.params.get(i).getParamName().equals(name))
+		for (int i = 0; i < this.paramSlotCount; i++)
+			if (this.symbolTable.get(i).getName().equals(name))
 				return i;
 		return -1;
 	}
@@ -145,17 +154,72 @@ public class FuncEntry {
 		return null;
 	}
 
+	/**
+	 * 查询函数体当前深度的符号
+	 *
+	 * @param name
+	 * @param deep
+	 * @return
+	 */
+	public SymbolEntry searchSymbolOnlySameDeep(String name, int deep) {
+		for (SymbolEntry s : this.symbolTable) {
+			if (s.getName().equals(name) && s.getDeep() == deep) return s;
+		}
+		return null;
+	}
+
+	/**
+	 * 在函数实体中以深度迭代查找一个符号（仅限在函数内的符号表）
+	 *
+	 * @param name
+	 * @param deep
+	 * @return
+	 */
+	public Object searchSymbolByDeepIterate(String name, int deep, Pos pos) throws AnalyzeError {
+		if (deep > 1) {
+			for (int i = deep; deep > 1; deep--) {
+				SymbolEntry s = searchSymbolOnlySameDeep(name, i);
+				if (s != null) return s;
+			}
+			return null;
+		} else {
+			// 此时是全局的符号，不可以在函数内查询
+			throw new AnalyzeError(ErrorCode.SymbolShouldInGlobal, pos);
+		}
+	}
+
+	/**
+	 * 获取当前函数中局部变量的偏移值
+	 *
+	 * @param name
+	 * @return
+	 */
+	public long getLocalSymbolOff(String name) {
+		for (SymbolEntry s : this.symbolTable) {
+			if (s.getName().equals(name)) return s.getOff();
+		}
+		return (long) -1;
+	}
+
+	/**
+	 * 增加函数体的指令集
+	 *
+	 * @param instructions
+	 */
+	public void addAllInstructions(List<Instruction> instructions) {
+		this.instructions.addAll(instructions);
+	}
+
+	public void addOneInstruction(Instruction instruction) {
+		this.instructions.add(instruction);
+	}
+
 	@Override
 	public String toString() {
 		String sSymbol = new String("");
-		String sParam = new String("");
 
 		for (SymbolEntry s: symbolTable) {
 			sSymbol = sSymbol + s.toString();
-		}
-
-		for (Param p:params) {
-			sParam = sParam + p.toString() + "\n";
 		}
 
 		return new StringBuilder()
@@ -163,8 +227,7 @@ public class FuncEntry {
 				.append("\tfuncType:" + funcType.toString() + "")
 				.append("\tvarSlotCount:" + varSlotCount + "")
 				.append("\tparamSlotCount:" + paramSlotCount + "\n")
-				.append("funcSymbol:\n").append(sSymbol)
-				.append("funcParam:\n").append(sParam)
+				.append("funcSymbol (with params):\n").append(sSymbol)
 				.append("\n")
 				.toString();
 	}

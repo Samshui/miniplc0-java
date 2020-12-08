@@ -8,6 +8,7 @@ import c0.table.Table;
 import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
+import c0.util.MyPair;
 import c0.util.Pos;
 import c0.util.SymbolType;
 
@@ -215,6 +216,7 @@ public final class Analyser {
 	4. 赋值时type是否对应的处理
 	5. 调用函数时的指令操作
 	6. if和while的跳转处理
+	7. 调用函数的参数
 	 */
 
 	/**
@@ -251,8 +253,23 @@ public final class Analyser {
 				/* 赋值表达式 */
 				if (peek().getTokenType() == TokenType.ASSIGN) {
 					expect(TokenType.ASSIGN);
-					analysisE(peek());
 
+					// 获取front对应的符号
+					MyPair myPair = table.searchOneSymbolFromLocalToGlobal((String) front.getValue(), this.deep, front.getStartPos());
+					SymbolEntry getSymbol = (SymbolEntry) myPair.getFirst();
+					Boolean isGlobal = (Boolean) myPair.getSecond();
+
+					if (isGlobal) instructions.add(new Instruction(Operation.GLOBA, getSymbol.getOff()));
+					else {
+						if (getSymbol.getSymbolType() == SymbolType.PARAM)
+							instructions.add(new Instruction(Operation.ARGA, getSymbol.getOff()));
+						else
+							instructions.add(new Instruction(Operation.LOCA, getSymbol.getOff()));
+					}
+
+					// 加入赋值语句右值生成指令集
+					instructions.addAll(analysisE(peek()));
+					instructions.add(new Instruction(Operation.STORE_64));
 				}
 				/* 非赋值表达式 */
 				else {
@@ -362,13 +379,16 @@ public final class Analyser {
 		}
 		analysisI(front);
 
+		// 添加置负指令
+		// todo 检查当前的类型以判断用neg.i还是neg.f
+		instructions.add(new Instruction(Operation.NEG_I));
 		return instructions;
 	}
 
 
 	/**
 	 * A -> (-)? I
-	 * I -> IDENT | UINT | DOUBLE | STRING | func_call | '('E')'
+	 * I -> IDENT | UINT | DOUBLE | STRING | CHAR | func_call | '('E')'
 	 *
 	 * @param front
 	 * @return
@@ -380,9 +400,32 @@ public final class Analyser {
 		List<Instruction> instructions = new ArrayList<>();
 
 		if (front.getTokenType() == TokenType.IDENT) {
+			// 首先在当前深度查找是否在当前函数中有定义
+			// 如果当前深度没有，就逐次向上找
+			// 找到deep = 2时还没有就去全局找
+			MyPair myPair = table.searchOneSymbolFromLocalToGlobal((String) front.getValue(), this.deep, front.getStartPos());
+
+			SymbolEntry getSymbol = (SymbolEntry) myPair.getFirst();
+			Boolean isGlobal = (Boolean) myPair.getSecond();
+
+			// 还找不到就报错
+			if (getSymbol == null) throw new AnalyzeError(ErrorCode.NotDeclared, front.getStartPos());
+
+			// 非函数调用：类型转换 | 单纯调用符号
 			if (peek().getTokenType() != TokenType.L_PAREN) {
-				// 单句修改变量类型
+				// 加载局部或全局符号地址
+				if (isGlobal) instructions.add(new Instruction(Operation.GLOBA, getSymbol.getOff()));
+				else {
+					if (getSymbol.getSymbolType() == SymbolType.PARAM)
+						instructions.add(new Instruction(Operation.ARGA, getSymbol.getOff()));
+					else
+						instructions.add(new Instruction(Operation.LOCA, getSymbol.getOff()));
+				}
+				instructions.add(new Instruction(Operation.LOAD_64));
+
 				if (peek().getTokenType() == TokenType.AS_KW) {
+					// 单句修改变量类型
+					// todo generate instructions
 					next();
 					expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY));
 				} else {
@@ -390,7 +433,7 @@ public final class Analyser {
 				}
 			}
 
-			// func call
+			// 函数调用
 			if (peek().getTokenType() == TokenType.L_PAREN) {
 				expect(TokenType.L_PAREN);
 
@@ -402,41 +445,37 @@ public final class Analyser {
 					expect(TokenType.R_PAREN);
 				}
 			}
-
-		} else if (front.getTokenType() == TokenType.UINT_LITERAL) {
+		}
+		else if (front.getTokenType() == TokenType.UINT_LITERAL) {
+			// int字面量
 			Token getUint = expect(TokenType.UINT_LITERAL);
 			Integer i = (Integer) getUint.getValue();
 			long iTOl = i;
-
-			// add PUSH uint
 			instructions.add(new Instruction(Operation.PUSH, iTOl));
-		} else if (front.getTokenType() == TokenType.DOUBLE_LITERAL) {
+		}
+		else if (front.getTokenType() == TokenType.DOUBLE_LITERAL) {
+			// double字面量
 			Token getDouble = expect(TokenType.DOUBLE_LITERAL);
-
-			// double -> long
 			Double d = (Double) getDouble.getValue();
 			long dTOl = Double.doubleToLongBits(d);
-
-			// add PUSH double
 			instructions.add(new Instruction(Operation.PUSH,dTOl));
-		} else if(front.getTokenType() == TokenType.STRING_LITERAL) {
+		}
+		else if(front.getTokenType() == TokenType.STRING_LITERAL) {
 			// 字符串字面量只会在putstr调用中出现，语义是对应的全局常量的编号
 			Token getString = expect(TokenType.STRING_LITERAL);
-
-			// add to global symtable
 			table.addGlobalSymbol((String) getString.getValue(), TokenType.STRING_LITERAL, SymbolType.VAR, 1, getString.getStartPos(), true, true);
-
-		} else if (front.getTokenType() == TokenType.CHAR_LITERAL) {
-			// add push char -> long
+		}
+		else if (front.getTokenType() == TokenType.CHAR_LITERAL) {
+			// char字面量
 			instructions.add(new Instruction(Operation.PUSH, (long) ((char) front.getValue())));
-		} else if (front.getTokenType() == TokenType.L_PAREN) {
+		}
+		else if (front.getTokenType() == TokenType.L_PAREN) {
+			// 括号表达式
 			expect(TokenType.L_PAREN);
-			analysisE(peek());
+			instructions.addAll(analysisE(peek()));
 			expect(TokenType.R_PAREN);
-
-			// group expr
-
-		} else {
+		}
+		else {
 			throw new AnalyzeError(ErrorCode.ExprERROR, peek().getEndPos());
 		}
 
@@ -447,38 +486,54 @@ public final class Analyser {
 	/**
 	 * 语句
 	 */
-	private void analyseStmt() throws CompileError {
+	private List<Instruction> analyseStmt() throws CompileError {
+		List<Instruction> instructions = new ArrayList<>();
+
 		// 打补丁 -- 针对else前无if匹配的情况
 		if (check(TokenType.ELSE_KW)) {
 			throw new AnalyzeError(ErrorCode.IfElseNotMatch, peek().getStartPos());
 		}
 
 		while (checkMayStmt(peek())) {
-			if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) analyseDeclStmt(false);
+			if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) instructions.addAll(analyseDeclStmt(false));
 			else if (check(TokenType.IF_KW)) analyseIfStmt();
 			else if (check(TokenType.WHILE_KW)) analyseWhileStmt();
-			else if (check(TokenType.RETURN_KW)) analyseReturnStmt();
-			else if (check(TokenType.L_BRACE)) analyseBlockStmt();
+			else if (check(TokenType.RETURN_KW)) instructions.addAll(analyseReturnStmt());
+			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt());
 			else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
-			else analyseExprStmt();
+			else instructions.addAll(analyseExprStmt());
 		}
+
+		return instructions;
 	}
 
 	/**
 	 * 表达式语句
 	 */
-	private void analyseExprStmt() throws CompileError {
-		analysisE(null);
+	private List<Instruction> analyseExprStmt() throws CompileError {
+		List<Instruction> instructions = new ArrayList<>();
+
+		// 分析Expr并生成指令集
+		instructions.addAll(analysisE(null));
 		expect(TokenType.SEMICOLON);
+
+		return instructions;
 	}
 
 	/**
 	 * 声明语句
+	 *
+	 * @param isGlobal
+	 * @return
+	 * @throws CompileError
 	 */
-	private void isLetDeclStmt(boolean isGlobal) throws CompileError {
+	private List<Instruction> isLetDeclStmt(boolean isGlobal) throws CompileError {
 		expect(TokenType.LET_KW);
 		Token nameToken = expect(TokenType.IDENT);
 		expect(TokenType.COLON);
+
+		List<Instruction> instructions = new ArrayList<>();
+		List<Instruction> analyseEIns = new ArrayList<>();
 
 		// 对变量置类型只允许int和double
 		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY));
@@ -489,8 +544,7 @@ public final class Analyser {
 			expect(TokenType.ASSIGN);
 
 			// 语法分析拿到该赋值语句的右值
-			// todo deal with -- generate instructions
-			analysisE(peek());
+			analyseEIns.addAll(analysisE(peek()));
 			isInit = true;
 		}
 
@@ -502,26 +556,58 @@ public final class Analyser {
 					typeToken.getTokenType(),
 					SymbolType.VAR,
 					this.deep, nameToken.getStartPos(), false, isInit);
+
+			// 当全局变量被初始化时，加入赋值生成的指令集
+			if (isInit) {
+				// 获取全局符号的偏移量
+				long globalSymbolOff = table.getGlobalSymbolOff((String) nameToken.getValue());
+
+				table.getGlobalInstructions().add(new Instruction(Operation.GLOBA, globalSymbolOff));
+				table.getGlobalInstructions().addAll(analyseEIns);
+				table.getGlobalInstructions().add(new Instruction(Operation.STORE_64));
+			}
+
 		} else {
 			table.addFuncSymbol((String) nameToken.getValue(),
 					typeToken.getTokenType(),
 					SymbolType.VAR,
 					this.deep, false, isInit,
 					nameToken.getStartPos());
+
+			// 当局部变量被初始化时，向函数内加入赋值生成的指令集
+			if (isInit) {
+				// 获取局部符号的偏移值
+				long localSymbolOff = table.getFuncTable().get(table.getFuncTable().size() - 1).getLocalSymbolOff((String) nameToken.getValue());
+
+				instructions.add(new Instruction(Operation.LOCA, localSymbolOff));
+				instructions.addAll(analyseEIns);
+				instructions.add(new Instruction(Operation.STORE_64));
+			}
 		}
 
 		expect(TokenType.SEMICOLON);
+
+		return instructions;
 	}
 
-	private void isConstDeclStmt(boolean isGlobal) throws CompileError {
+	/**
+	 * const 声明语句
+	 *
+	 * @param isGlobal
+	 * @return
+	 * @throws CompileError
+	 */
+	private List<Instruction> isConstDeclStmt(boolean isGlobal) throws CompileError {
 		expect(TokenType.CONST_KW);
 		Token nameToken = expect(TokenType.IDENT);
 		expect(TokenType.COLON);
 		Token typeToken = expect(List.of(TokenType.INT_TY, TokenType.DOUBLE_TY));
 		expect(TokenType.ASSIGN);
 
-		// todo deal with -- generate instructions
-		analysisE(peek());
+		List<Instruction> instructions = new ArrayList<>();
+		List<Instruction> analyseEIns = new ArrayList<>();
+
+		analyseEIns.addAll(analysisE(peek()));
 
 		// 如果是一个全局的const语句，就放入全局符号表
 		// 反之就放入当前函数的符号表中（当前函数为函数表最后一个函数实体）
@@ -531,20 +617,42 @@ public final class Analyser {
 					typeToken.getTokenType(),
 					SymbolType.VAR,
 					this.deep, nameToken.getStartPos(), true, true);
+
+			// 获取全局符号的偏移量
+			long globalSymbolOff = table.getGlobalSymbolOff((String) nameToken.getValue());
+
+			table.getGlobalInstructions().add(new Instruction(Operation.GLOBA, globalSymbolOff));
+			table.getGlobalInstructions().addAll(analyseEIns);
+			table.getGlobalInstructions().add(new Instruction(Operation.STORE_64));
 		} else {
 			table.addFuncSymbol((String) nameToken.getValue(),
 					typeToken.getTokenType(),
 					SymbolType.VAR,
 					this.deep, true, true,
 					nameToken.getStartPos());
+
+			// 获取局部符号的偏移值
+			long localSymbolOff = table.getFuncTable().get(table.getFuncTable().size() - 1).getLocalSymbolOff((String) nameToken.getValue());
+
+			instructions.add(new Instruction(Operation.LOCA, localSymbolOff));
+			instructions.addAll(analyseEIns);
+			instructions.add(new Instruction(Operation.STORE_64));
 		}
 
 		expect(TokenType.SEMICOLON);
+
+		return instructions;
 	}
 
-	private void analyseDeclStmt(boolean isGlobal) throws CompileError {
-		if (check(TokenType.LET_KW)) isLetDeclStmt(isGlobal);
-		else if (check(TokenType.CONST_KW)) isConstDeclStmt(isGlobal);
+	private List<Instruction> analyseDeclStmt(boolean isGlobal) throws CompileError {
+		List<Instruction> instructions = new ArrayList<>();
+
+		if (check(TokenType.LET_KW))
+			instructions.addAll(isLetDeclStmt(isGlobal));
+		else if (check(TokenType.CONST_KW))
+			instructions.addAll(isConstDeclStmt(isGlobal));
+
+		return instructions;
 	}
 
 	/**
@@ -579,11 +687,13 @@ public final class Analyser {
 		analyseBlockStmt();
 	}
 
-	private void analyseReturnStmt() throws CompileError {
+	private List<Instruction> analyseReturnStmt() throws CompileError {
 		expect(TokenType.RETURN_KW);
 
 		// 此时函数有返回值
 		funcReturn = true;
+
+		List<Instruction> instructions = new ArrayList<>();
 
 		// 如果该函数为void类型，则不可以接返回值
 		if (table.getFuncTable().get(table.getFuncTable().size() - 1).getFuncType() == TokenType.VOID_TY) {
@@ -596,9 +706,15 @@ public final class Analyser {
 			if (peek().getTokenType() == TokenType.SEMICOLON) {
 				throw new AnalyzeError(ErrorCode.ShouldReturn, peek().getStartPos());
 			}
-			analysisE(peek());
+
+			// 加入 return Expr; 右部生成的指令集
+			instructions.addAll(analysisE(peek()));
 		}
 		expect(TokenType.SEMICOLON);
+
+		// 加入ret指令
+		instructions.add(new Instruction(Operation.RET));
+		return instructions;
 	}
 
 	/**
@@ -617,18 +733,14 @@ public final class Analyser {
 		this.deep ++;
 
 		while (!check(TokenType.R_BRACE)) {
-			analyseStmt();
+			instructions.addAll(analyseStmt());
 		}
 		expect(TokenType.R_BRACE);
 
-		// 当前deep > 1时，表示此时处于函数内，有返回则funcReturn应该为true
-		if (deep > 1) {
-			if (table.getFuncTable()
-					.get(table.getFuncTable().size() - 1)
-					.getFuncType() != TokenType.VOID_TY && !funcReturn) {
+		// 当前deep == 2时，表示此时处于函数内部的最外层，有返回则funcReturn应该为true
+		if (deep == 2)
+			if (table.getFuncTable().get(table.getFuncTable().size() - 1).getFuncType() != TokenType.VOID_TY && !funcReturn)
 				throw new AnalyzeError(ErrorCode.ShouldReturn, peek().getStartPos());
-			}
-		}
 
 		// 退出块后，deep - 1
 		this.deep --;
@@ -671,6 +783,9 @@ public final class Analyser {
 	}
 
 	private void analyseFunction() throws CompileError {
+		// 函数的指令集
+		List<Instruction> instructions = new ArrayList<>();
+
 		expect(TokenType.FN_KW);
 		Token funcName = expect(TokenType.IDENT);
 		expect(TokenType.L_PAREN);
@@ -678,7 +793,7 @@ public final class Analyser {
 		// 在函数表中加入该函数（仅占位）
 		table.addFuncEntry((String) funcName.getValue(), funcName.getEndPos());
 		// 同时在符号表中加入该函数的名字和返回类型
-		table.addGlobalSymbol((String) funcName.getValue(), TokenType.VOID_TY, SymbolType.FUNC, this.deep, funcName.getStartPos(), true, true);
+		// table.addGlobalSymbol((String) funcName.getValue(), TokenType.VOID_TY, SymbolType.FUNC, this.deep, funcName.getStartPos(), true, true);
 
 		// 发现该函数有形参，进入形参处理，此时加入形参时直接加入到函数表倒着的第一个函数
 		if (!check(TokenType.R_PAREN)) analyseFunctionParamList();
@@ -689,15 +804,21 @@ public final class Analyser {
 		// 获取该函数的返回类型，并填入倒数第一个函数实体以及对应的全局符号
 		Token funcType = expect(List.of(TokenType.VOID_TY, TokenType.INT_TY, TokenType.DOUBLE_TY));
 		if (funcType.getTokenType() != TokenType.VOID_TY) {
-			table.addGlobalType(funcName, funcType.getTokenType());
+			// table.addGlobalType(funcName, funcType.getTokenType());
 			table.addFuncType(funcType.getTokenType());
 		}
 
 		// 进入该函数实体中
-		analyseBlockStmt();
+		instructions.addAll(analyseBlockStmt());
 
 		// 退出函数体后，重置funcRet
 		funcReturn = false;
+
+		// 同时加入ret指令
+		instructions.add(new Instruction(Operation.RET));
+
+		// 将该函数的指令集加入到函数内指令集中
+		table.addInstructionsToFunc(instructions);
 	}
 
 	/**

@@ -49,6 +49,16 @@ public class SymbolEntry {
 		this.isInitialized = isInitialized;
 	}
 
+	public SymbolEntry(TokenType type) {
+		this.name = "*R*";
+		this.type = type;
+		this.symbolType = SymbolType.RET;
+		this.deep = 2;
+		this.off = 0;
+		this.isConstant = false;
+		this.isInitialized = false;
+	}
+
 	/* getter & setter */
 	public String getName() {
 		return name;
