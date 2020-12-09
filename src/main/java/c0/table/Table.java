@@ -65,7 +65,10 @@ public class Table {
 	public void addGlobalType(Token nameToken, TokenType type) throws AnalyzeError {
 		SymbolEntry symbolEntry = symExist((String) nameToken.getValue());
 		if (symbolEntry != null) symbolEntry.setType(type);
-		else throw new AnalyzeError(ErrorCode.NotDeclared, nameToken.getStartPos());
+		else {
+			System.out.println("add global symbol type error");
+			throw new AnalyzeError(ErrorCode.NotDeclared, nameToken.getStartPos());
+		}
 	}
 
 	/**
@@ -165,6 +168,33 @@ public class Table {
 			if (s.getName().equals(name)) return s;
 		}
 		return null;
+	}
+
+
+	/**
+	 * 在table的函数表中查找函数
+	 *
+	 * @param name
+	 * @return
+	 */
+	public FuncEntry searchFuncInTable(String name) {
+		for (FuncEntry f : this.funcTable) {
+			if (f.getFuncName().equals(name)) return f;
+		}
+		return null;
+	}
+
+	/**
+	 * 获取函数编号
+	 *
+	 * @param name
+	 * @return
+	 */
+	public int getFuncID(String name) {
+		for (int i = 0; i < this.funcTable.size(); i++)
+			if (this.funcTable.get(i).getFuncName().equals(name))
+				return i + 1;
+		return 0;
 	}
 
 	/**

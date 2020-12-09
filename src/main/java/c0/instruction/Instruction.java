@@ -51,6 +51,7 @@ public class Instruction {
 
 	@Override
 	public String toString() {
-		return "this is a instruction";
+		if (this.len == 2) return this.opt.toString() + "(" + off + ")\n";
+		else return this.opt.toString() + "\n";
 	}
 }

@@ -11,6 +11,7 @@ public enum ErrorCode {
 	DuplicateFuncName,					// 函数命名重复				[语义分析]
 	DuplicateName,						// 符号命名重复
 	EOF,
+	FuncParamsMisMatch,					// 函数参数不匹配			[语义分析]
 	InvalidInput,                    	// 无效输入					[词法分析]
 	InvalidIdentifier,               	// 无效标识符					[词法分析]
 	InvalidEscapeSequence,           	// 无效转义序列				[词法分析]
@@ -25,7 +26,9 @@ public enum ErrorCode {
 	StreamError,
 	ShouldReturn,						// 函数需要返回值				[语义分析]
 	ShouldNotReturn,					// 函数不需要返回值			[语义分析]
+	ShouldNotBeExist, 					// 本不该存在 				[语义分析]
 	SymbolShouldInGlobal,				// 符号应在全局				[语义分析]
+	TypeMisMatch, 						// 类型不匹配 				[语义分析]
 	NeedIdentifier,
 	NoSemicolon,
 	NotComplete, 						// 不完整					[语义分析]

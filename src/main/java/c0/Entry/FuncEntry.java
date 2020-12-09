@@ -177,7 +177,7 @@ public class FuncEntry {
 	 */
 	public Object searchSymbolByDeepIterate(String name, int deep, Pos pos) throws AnalyzeError {
 		if (deep > 1) {
-			for (int i = deep; deep > 1; deep--) {
+			for (int i = deep; i > 1; i--) {
 				SymbolEntry s = searchSymbolOnlySameDeep(name, i);
 				if (s != null) return s;
 			}
@@ -217,10 +217,16 @@ public class FuncEntry {
 	@Override
 	public String toString() {
 		String sSymbol = new String("");
+		String sInstruc = new String("");
 
 		for (SymbolEntry s: symbolTable) {
-			sSymbol = sSymbol + s.toString();
+			sSymbol += s.toString();
 		}
+
+		for (Instruction i: instructions) {
+			sInstruc += i.toString();
+		}
+
 
 		return new StringBuilder()
 				.append("funcName:[" + funcName + "]")
@@ -228,6 +234,7 @@ public class FuncEntry {
 				.append("\tvarSlotCount:" + varSlotCount + "")
 				.append("\tparamSlotCount:" + paramSlotCount + "\n")
 				.append("funcSymbol (with params):\n").append(sSymbol)
+				.append("funcInstructions:\n").append(sInstruc)
 				.append("\n")
 				.toString();
 	}

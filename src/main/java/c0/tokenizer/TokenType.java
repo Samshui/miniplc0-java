@@ -1,9 +1,5 @@
 package c0.tokenizer;
 
-import c0.error.AnalyzeError;
-import c0.error.ErrorCode;
-import c0.error.ExpectedTokenError;
-
 public enum TokenType {
 	/**
 	 * 空
@@ -81,6 +77,7 @@ public enum TokenType {
 	INT_TY,
 	VOID_TY,
 	DOUBLE_TY,
+	BOOL_TY,
 
 	/**
 	 * 文件尾
@@ -168,12 +165,10 @@ public enum TokenType {
 				return "void-ty";
 			case DOUBLE_TY:
 				return "double-ty";
+			case BOOL_TY:
+				return "bool-ty";
 			default:
 				return "InvalidToken";
 		}
 	}
-//
-//	public static boolean isLegalToken(Token token) {
-//		if (token.getTokenType() == )
-//	}
 }
