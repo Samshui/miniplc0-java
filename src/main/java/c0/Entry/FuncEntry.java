@@ -25,6 +25,15 @@ public class FuncEntry {
 		this.symbolTable = new ArrayList<>();
 	}
 
+	public FuncEntry(String funcName, TokenType funcType, int paramSlotCount, int varSlotCount) {
+		this.funcName = funcName;
+		this.funcType = funcType;
+		this.paramSlotCount = paramSlotCount;
+		this.varSlotCount = varSlotCount;
+		this.instructions = new ArrayList<>();
+		this.symbolTable = new ArrayList<>();
+	}
+
 	// getter & setter
 	public String getFuncName() {
 		return funcName;
@@ -54,7 +63,7 @@ public class FuncEntry {
 		return instructions;
 	}
 
-	public void setInstructions(ArrayList<Instruction> instructions) {
+	public void setInstructions(List<Instruction> instructions) {
 		this.instructions = instructions;
 	}
 
@@ -79,6 +88,7 @@ public class FuncEntry {
 	 */
 	public void pushTypeSlot(TokenType type) {
 		this.symbolTable.add(0, new SymbolEntry(type));
+
 		for (int i = 1; i <= this.paramSlotCount; i++) {
 			this.symbolTable.get(i).off += 1;
 		}
@@ -214,6 +224,10 @@ public class FuncEntry {
 		this.instructions.add(instruction);
 	}
 
+	public void setSymbolInitState(int off) {
+		symbolTable.get(off).setInitialized(true);
+	}
+
 	@Override
 	public String toString() {
 		String sSymbol = new String("");
@@ -223,10 +237,9 @@ public class FuncEntry {
 			sSymbol += s.toString();
 		}
 
-		for (Instruction i: instructions) {
-			sInstruc += i.toString();
+		for (int i = 0; i < instructions.size(); i++) {
+			sInstruc += (i + ": " + instructions.get(i).toString());
 		}
-
 
 		return new StringBuilder()
 				.append("funcName:[" + funcName + "]")

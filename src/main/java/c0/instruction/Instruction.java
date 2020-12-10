@@ -49,9 +49,68 @@ public class Instruction {
 		this.opt = opt;
 	}
 
+	public int getLen() {
+		return len;
+	}
+
+	public void setLen(int len) {
+		this.len = len;
+	}
+
 	@Override
 	public String toString() {
 		if (this.len == 2) return this.opt.toString() + "(" + off + ")\n";
 		else return this.opt.toString() + "\n";
+	}
+
+	public int getType() {
+		switch (this.opt) {
+			case LOCA:
+				return 0xa;
+			case ARGA:
+				return 0xb;
+			case GLOBA:
+				return 0xc;
+			case ADD_I:
+				return 0x20;
+			case SUB_I:
+				return 0x21;
+			case MUL_I:
+				return 0x22;
+			case DIV_I:
+				return 0x23;
+			case STORE_64:
+				return 0x17;
+			case CMP_I:
+				return 0x30;
+			case PUSH:
+				return 0x1;
+			case SET_LT:
+				return 0x39;
+			case BR_FALSE:
+				return 0x42;
+			case BR_TRUE:
+				return 0x43;
+			case SET_GT:
+				return 0x3a;
+			case BR:
+				return 0x41;
+			case RET:
+				return 0x49;
+			case CALLNAME:
+				return 0x4a;
+			case LOAD_64:
+				return 0x13;
+			case STACKALLOC:
+				return 0x1a;
+			case CALL:
+				return 0x48;
+			case NOT:
+				return 0x2e;
+			case NEG_I:
+				return 0x34;
+			default:
+				return 0xFF;
+		}
 	}
 }

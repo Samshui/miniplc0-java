@@ -29,6 +29,58 @@ public class Table {
 	}
 
 	/**
+	 * 全局符号表加载
+	 */
+	public void tableInit() throws AnalyzeError {
+		globalSymTable.add(new SymbolEntry("getint", TokenType.INT_TY, SymbolType.FUNC, 1, 0, true, true));
+		globalSymTable.add(new SymbolEntry("getdouble", TokenType.DOUBLE_TY, SymbolType.FUNC, 1, 1, true, true));
+		globalSymTable.add(new SymbolEntry("getchar", TokenType.INT_TY, SymbolType.FUNC, 1, 2, true, true));
+		globalSymTable.add(new SymbolEntry("putint", TokenType.VOID_TY, SymbolType.FUNC, 1, 3, true, true));
+		globalSymTable.add(new SymbolEntry("putdouble", TokenType.VOID_TY, SymbolType.FUNC, 1, 4, true, true));
+		globalSymTable.add(new SymbolEntry("putchar", TokenType.VOID_TY, SymbolType.FUNC, 1, 5, true, true));
+		globalSymTable.add(new SymbolEntry("putstr", TokenType.VOID_TY, SymbolType.FUNC, 1, 6, true, true));
+		globalSymTable.add(new SymbolEntry("putln", TokenType.VOID_TY, SymbolType.FUNC, 1, 7, true, true));
+
+		searchOneSymbolFromLocalToGlobal("getint", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("getdouble", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("getchar", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("putint", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("putdouble", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("putchar", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("putstr", 1, new Pos(0, 0));
+		searchOneSymbolFromLocalToGlobal("putln", 1, new Pos(0, 0));
+	}
+
+	/**
+	 * no use
+	 */
+	public void noUse() throws AnalyzeError {
+		FuncEntry getInt = new FuncEntry("getint", TokenType.INT_TY, 0, 0);
+		FuncEntry getDouble = new FuncEntry("getdouble", TokenType.DOUBLE_TY, 0, 0);
+		FuncEntry getChar = new FuncEntry("getchar", TokenType.INT_TY, 0, 0);
+		FuncEntry putInt = new FuncEntry("putint", TokenType.VOID_TY, 0, 0);
+		FuncEntry putDouble = new FuncEntry("putdouble", TokenType.VOID_TY, 0, 0);
+		FuncEntry putChar = new FuncEntry("putchar", TokenType.VOID_TY, 0, 0);
+		FuncEntry putStr = new FuncEntry("putstr", TokenType.VOID_TY, 0, 0);
+		FuncEntry putLn = new FuncEntry("putln", TokenType.VOID_TY, 0, 0);
+
+		putInt.addParam("int", TokenType.INT_TY, new Pos(0, 0));
+		putDouble.addParam("double", TokenType.DOUBLE_TY, new Pos(0, 0));
+		putChar.addParam("int", TokenType.INT_TY, new Pos(0, 0));
+		putStr.addParam("int", TokenType.INT_TY, new Pos(0, 0));
+
+		this.funcTable.add(getInt);
+		this.funcTable.add(getDouble);
+		this.funcTable.add(getChar);
+		this.funcTable.add(putInt);
+		this.funcTable.add(putDouble);
+		this.funcTable.add(putChar);
+		this.funcTable.add(putStr);
+		this.funcTable.add(putLn);
+	}
+
+
+	/**
 	 * 添加函数
 	 *
 	 * @param name
@@ -40,6 +92,10 @@ public class Table {
 		if (this.funcExist(name) != null)
 			throw new AnalyzeError(ErrorCode.DuplicateFuncName, pos);
 		this.funcTable.add(new FuncEntry(name));
+	}
+
+	public void addStart(FuncEntry funcEntry) {
+		this.funcTable.add(funcEntry);
 	}
 
 	/**
@@ -106,20 +162,6 @@ public class Table {
 			throw new AnalyzeError(ErrorCode.DuplicateGlobalVar, currentPos);
 		}
 		this.globalSymTable.add(new SymbolEntry(name, type, symbolType, deep, (long) this.globalSymTable.size(), isConstant, isInitialized));
-	}
-
-	/**
-	 * 添加函数参数
-	 *
-	 * @param name
-	 * @param type
-	 * @param pos
-	 * @throws AnalyzeError
-	 */
-	public void addParam(String name, TokenType type, Pos pos) throws AnalyzeError {
-		this.funcTable
-				.get(this.funcTable.size() - 1)
-				.addParam(name, type, pos);
 	}
 
 	/**
@@ -215,6 +257,7 @@ public class Table {
 			if (getSymbol == null) {
 				// 局部搜索不到该符号，转去全局搜索
 				getSymbol = symExist(name);
+				if (getSymbol != null) isGlobal = true;
 			}
 		} else {
 			// 全局赋值语句会用到
@@ -325,8 +368,21 @@ public class Table {
 		this.globalInstructions = globalInstructions;
 	}
 
+	public void addGlobalInstructions(List<Instruction> globalInstructions) {
+		this.globalInstructions.addAll(globalInstructions);
+	}
+
+	public void addGlobalInstruction(Instruction globalInstruction) {
+		this.globalInstructions.add(globalInstruction);
+	}
+
 	@Override
 	public String toString() {
+//		System.out.println("Global instructions " + globalInstructions.size());
+//		for (int i = 0; i < globalInstructions.size(); i++)
+//			System.out.print(i + ": " + globalInstructions.get(i).toString());
+//		System.out.println();
+
 		String tableString = new String("");
 		for (SymbolEntry s: globalSymTable) tableString += s.toString();
 		tableString += "\n";

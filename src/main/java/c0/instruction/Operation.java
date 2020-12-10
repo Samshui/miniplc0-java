@@ -82,38 +82,39 @@ public enum Operation {
 	@Override
 	public String toString() {
 		switch (this) {
-			case NOP: return "nothing";
-			case PUSH: return "push";
-			case POP: return "pop";
-			case POPN: return "popN";
-			case LOCA: return "loca";
-			case ARGA: return "arga";
-			case GLOBA: return "globa";
-			case LOAD_64: return "load64";
-			case STORE_64: return "store64";
-			case STACKALLOC: return "stackAlloc";
-			case ADD_I: return "addI";
-			case ADD_F: return "addF";
-			case SUB_I: return "subI";
-			case SUB_F: return "subF";
-			case MUL_I: return "mulI";
-			case MUL_F: return "mulF";
-			case DIV_I: return "divI";
-			case DIV_F: return "divF";
-			case NOT: return "not";
-			case CMP_I: return "cmpI";
-			case CMP_F: return "cmpF";
-			case NEG_I: return "negI";
-			case NEG_F: return "negF";
-			case SET_LT: return "setLT";
-			case SET_GT: return "setGT";
-			case CALL: return "call";
-			case RET: return "ret";
+			case NOP: return "Nothing";
+			case PUSH: return "Push";
+			case POP: return "Pop";
+			case POPN: return "PopN";
+			case LOCA: return "LocA";
+			case ARGA: return "ArgA";
+			case GLOBA: return "GlobA";
+			case LOAD_64: return "Load64";
+			case STORE_64: return "Store64";
+			case STACKALLOC: return "StackAlloc";
+			case ADD_I: return "AddI";
+			case ADD_F: return "AddF";
+			case SUB_I: return "SubI";
+			case SUB_F: return "SubF";
+			case MUL_I: return "MulI";
+			case MUL_F: return "MulF";
+			case DIV_I: return "DivI";
+			case DIV_F: return "DivF";
+			case NOT: return "Not";
+			case CMP_I: return "CmpI";
+			case CMP_F: return "CmpF";
+			case NEG_I: return "NegI";
+			case NEG_F: return "NegF";
+			case SET_LT: return "SetLt";
+			case SET_GT: return "SetGt";
+			case CALL: return "Call";
+			case RET: return "Ret";
 			case FTOI: return "FToI";
 			case ITOF: return "IToF";
-			case BR: return "br";
-			case BR_TRUE: return "brTrue";
-			default: return "others";
+			case BR: return "Br";
+			case BR_TRUE: return "BrTrue";
+			case CALLNAME: return "CallName";
+			default: return "Others";
 		}
 	}
 }

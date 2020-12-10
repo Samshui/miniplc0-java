@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IfElse {
-	List<Branch> branches = new ArrayList<>();
-	int ifBranchesCount = 0;
-	int elseBranchesCount = 0;
+	private List<Branch> branches = new ArrayList<>();
+	private int ifBranchesCount = 0;
+	private int elseBranchesCount = 0;
 
 	public IfElse() { }
 
@@ -54,8 +54,10 @@ public class IfElse {
 
 		ifBranch.setHandle(handles);
 
+		System.out.println(handles.size());
+
 		ifBranch.brTrueAndBr.add(new Instruction(Operation.BR_TRUE, (long) 1));
-		ifBranch.brTrueAndBr.add(new Instruction(Operation.BR, (long) handles.size()));
+		ifBranch.brTrueAndBr.add(new Instruction(Operation.BR, (long) handles.size() + (isRet ? 0 : 1)));
 
 		ifBranch.setRet(isRet);
 		this.branches.add(ifBranch);
@@ -99,6 +101,7 @@ public class IfElse {
 		List<Instruction> instructions = new ArrayList<>();
 		for (int i = 0; i < this.branches.size(); i++)
 			instructions.addAll(this.branches.get(i).getBranchFullInstruction());
+
 		return instructions;
 	}
 }

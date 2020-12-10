@@ -38,5 +38,6 @@ public enum ErrorCode {
 	InvalidPrint,
 	InvalidIndent,						// 标识符无效					[语法分析]
 	ExpectedToken,
-	ExprERROR
+	ExprERROR,
+	WithOutMain							// 无运行入口					[语义分析]
 }

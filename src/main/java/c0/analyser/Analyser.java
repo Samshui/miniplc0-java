@@ -46,16 +46,26 @@ public final class Analyser {
 	 */
 	int deep = 1;
 
+	int whileRetDeep = 1;
+
 	public Analyser(Tokenizer tokenizer) {
 		this.tokenizer = tokenizer;
 		this.tmpInstructions = new ArrayList<>();
 	}
 
 	public List<Instruction> analyse() throws CompileError {
+		table.tableInit();
 		analyseProgramme();
 		next();
-		System.out.println(table.toString());
 		return instructions;
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public Table retTable() {
+		return this.table;
 	}
 
 	/**
@@ -536,7 +546,7 @@ public final class Analyser {
 
 	/**
 	 * F -> A ( as int_ty | double_ty )?
-	 * A -> (-)? I
+	 * A -> {-} I
 	 *
 	 * @param front
 	 * @return
@@ -546,9 +556,11 @@ public final class Analyser {
 		LoadUp loadUp = new LoadUp();
 		List<Instruction> instructions = new ArrayList<>();
 
-		Boolean nFlag = false;
-		if (front.getTokenType() == TokenType.MINUS) {
-			nFlag = true;
+		int negCount = 0;
+
+		// 获取置反
+		while (front.getTokenType() == TokenType.MINUS) {
+			negCount++;
 			next();
 			front = peek();
 		}
@@ -557,14 +569,17 @@ public final class Analyser {
 		instructions.addAll(upI.instructions);
 
 		// 添加置负指令
-		if (nFlag) {
+		if (negCount > 0) {
 			if (upI.type == TokenType.VOID_TY)
 				throw new AnalyzeError(ErrorCode.TypeMisMatch, peekedToken.getStartPos());
 			else {
-				if (upI.type == TokenType.INT_TY || upI.type == TokenType.CHAR_LITERAL || upI.type == TokenType.STRING_LITERAL)
-					instructions.add(new Instruction(Operation.NEG_I));
+				if (upI.type == TokenType.INT_TY || upI.type == TokenType.CHAR_LITERAL || upI.type == TokenType.STRING_LITERAL) {
+					for (int i = 0; i < negCount; i++)
+						instructions.add(new Instruction(Operation.NEG_I));
+				}
 				else if (upI.type == TokenType.DOUBLE_TY)
-					instructions.add(new Instruction(Operation.NEG_F));
+					for (int i = 0; i < negCount; i++)
+						instructions.add(new Instruction(Operation.NEG_F));
 				else
 					throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
 			}
@@ -591,10 +606,187 @@ public final class Analyser {
 		List<Instruction> instructions = new ArrayList<>();
 
 		if (front.getTokenType() == TokenType.IDENT) {
-			Token getPeek = next();
+			Token getLast = next();
+
+			if (getLast.getTokenType() == TokenType.L_PAREN) {
+				// 函数调用
+				// 获取到外部函数
+				if (isOutFunc((String) front.getValue())) {
+					int outFuncID = getOutFuncID((String) front.getValue());
+					List<Instruction> callInstrutions = new ArrayList<>();
+
+					switch (outFuncID) {
+						case 0:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 0));
+
+							// 上载
+							loadUp.setType(TokenType.INT_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 1:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 1));
+
+							// 上载
+							loadUp.setType(TokenType.DOUBLE_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 2:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 2));
+
+							// 上载
+							loadUp.setType(TokenType.INT_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 3:
+							LoadUp getPutInt = analysisE(peek());
+
+							if (getPutInt.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutInt.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 3));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 4:
+							LoadUp getPutDouble = analysisE(peek());
+
+							if (getPutDouble.type != TokenType.DOUBLE_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutDouble.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 4));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 5:
+							LoadUp getPutChar = analysisE(peek());
+
+							if (getPutChar.type != TokenType.CHAR_LITERAL && getPutChar.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutChar.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 5));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 6:
+							LoadUp getPutStr = analysisE(peek());
+
+							if (getPutStr.type != TokenType.STRING_LITERAL && getPutStr.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutStr.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 6));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 7:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 7));
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						default: throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
+					}
+				}
+				else {
+					// 查找并调用函数
+					FuncEntry funcEntry = table.searchFuncInTable((String) front.getValue());
+
+					// 如果函数未定义 -- 报错
+					if (funcEntry == null) {
+						throw new AnalyzeError(ErrorCode.NotDeclared, front.getStartPos());
+					}
+
+					// 如果函数有返回值，分配空间
+					if (funcEntry.getFuncType() != TokenType.VOID_TY)
+						instructions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+					else
+						instructions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+
+					// 函数调用有参数输入
+					if (peek().getTokenType() != TokenType.R_PAREN) {
+						// 在此处生成 -- 参数压入指令集
+						List<LoadUp> paramUpLoads = new ArrayList<>();
+
+						do{
+							LoadUp paramLoad = analysisE(peek());
+							paramUpLoads.add(paramLoad);
+							instructions.addAll(paramLoad.instructions);
+						}
+						while (nextIf(TokenType.COMMA) != null);
+
+						// 检查参数数量和类型
+						if (funcEntry.getParamSlotCount() != paramUpLoads.size())
+							throw new AnalyzeError(ErrorCode.FuncParamsMisMatch, peek().getStartPos());
+
+						int checkParamStartPos = (funcEntry.getFuncType() == TokenType.VOID_TY)? 0 : 1;
+						for (int i = 0; i < paramUpLoads.size(); i++) {
+							if (paramUpLoads.get(i).type != funcEntry.getSymbolTable().get(i + checkParamStartPos).getType())
+								throw new AnalyzeError(ErrorCode.FuncParamsMisMatch, peek().getStartPos());
+						}
+
+						expect(TokenType.R_PAREN);
+					} else {
+						expect(TokenType.R_PAREN);
+					}
+
+					// call func by funcID
+					int funcID = table.getFuncID((String) front.getValue());
+					instructions.add(new Instruction(Operation.CALL, (long) funcID));
+
+					// 上载
+					loadUp.setType(funcEntry.getFuncType());
+					loadUp.setInstructions(instructions);
+					// 函数不允许 fun() = x;的操作
+					loadUp.setConstant(true);
+				}
+			}
 
 			// 非函数调用：类型转换 | 单纯调用符号
-			if (peek().getTokenType() != TokenType.L_PAREN) {
+			else if (peek().getTokenType() != TokenType.L_PAREN) {
 				// 首先在当前深度查找是否在当前函数中有定义
 				// 如果当前深度没有，就逐次向上找
 				// 找到deep = 2时还没有就去全局找
@@ -605,13 +797,13 @@ public final class Analyser {
 
 				// 还找不到就报错
 				if (getSymbol == null) {
-					System.out.println("not call func");
-					System.out.println(front);
 					throw new AnalyzeError(ErrorCode.NotDeclared, front.getStartPos());
 				}
 
 				// 找到了先看看是否初始化
-				if (!getSymbol.isInitialized()) throw new AnalyzeError(ErrorCode.NotInitialized, front.getStartPos());
+				if (!getSymbol.isInitialized()) {
+					throw new AnalyzeError(ErrorCode.NotInitialized, front.getStartPos());
+				}
 
 				// 加载局部或全局符号地址
 				if (isGlobal) instructions.add(new Instruction(Operation.GLOBA, getSymbol.getOff()));
@@ -648,58 +840,182 @@ public final class Analyser {
 			}
 
 			// 函数调用
-			if (peek().getTokenType() == TokenType.L_PAREN) {
+			else if (peek().getTokenType() == TokenType.L_PAREN) {
 				expect(TokenType.L_PAREN);
 
-				// 查找并调用函数
-				FuncEntry funcEntry = table.searchFuncInTable((String) front.getValue());
+				// 获取到外部函数
+				if (isOutFunc((String) front.getValue())) {
+					int outFuncID = getOutFuncID((String) front.getValue());
+					List<Instruction> callInstrutions = new ArrayList<>();
 
-				// 如果函数未定义 -- 报错
-				if (funcEntry == null) {
-					System.out.println("call func");
-					throw new AnalyzeError(ErrorCode.NotDeclared, front.getStartPos());
-				}
+					switch (outFuncID) {
+						case 0:
+							expect(TokenType.R_PAREN);
 
-				// 如果函数有返回值，分配空间
-				if (funcEntry.getFuncType() != TokenType.VOID_TY)
-					instructions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 0));
 
-				// 函数调用有参数输入
-				if (peek().getTokenType() != TokenType.R_PAREN) {
-					// 在此处生成 -- 参数压入指令集
-					List<LoadUp> paramUpLoads = new ArrayList<>();
+							// 上载
+							loadUp.setType(TokenType.INT_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 1:
+							expect(TokenType.R_PAREN);
 
-					do{
-						LoadUp paramLoad = analysisE(peek());
-						paramUpLoads.add(paramLoad);
-						instructions.addAll(paramLoad.instructions);
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 1));
+
+							// 上载
+							loadUp.setType(TokenType.DOUBLE_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 2:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 2));
+
+							// 上载
+							loadUp.setType(TokenType.INT_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 3:
+							LoadUp getPutInt = analysisE(peek());
+
+							if (getPutInt.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutInt.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 3));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 4:
+							LoadUp getPutDouble = analysisE(peek());
+
+							if (getPutDouble.type != TokenType.DOUBLE_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutDouble.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 4));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 5:
+							LoadUp getPutChar = analysisE(peek());
+
+							if (getPutChar.type != TokenType.CHAR_LITERAL && getPutChar.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutChar.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 5));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 6:
+							LoadUp getPutStr = analysisE(peek());
+
+							if (getPutStr.type != TokenType.STRING_LITERAL && getPutStr.type != TokenType.INT_TY)
+								throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.addAll(getPutStr.instructions);
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 6));
+
+							expect(TokenType.R_PAREN);
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						case 7:
+							expect(TokenType.R_PAREN);
+
+							callInstrutions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+							callInstrutions.add(new Instruction(Operation.CALLNAME, (long) 7));
+
+							// 上载
+							loadUp.setType(TokenType.VOID_TY);
+							loadUp.setInstructions(callInstrutions);
+							loadUp.setConstant(true);
+							break;
+						default: throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
 					}
-					while (nextIf(TokenType.COMMA) != null);
+				}
+				else {
+					// 查找并调用函数
+					FuncEntry funcEntry = table.searchFuncInTable((String) front.getValue());
 
-					// 检查参数数量和类型
-					if (funcEntry.getParamSlotCount() != paramUpLoads.size())
-						throw new AnalyzeError(ErrorCode.FuncParamsMisMatch, peek().getStartPos());
+					// 如果函数未定义 -- 报错
+					if (funcEntry == null) {
+						throw new AnalyzeError(ErrorCode.NotDeclared, front.getStartPos());
+					}
 
-					int checkParamStartPos = (funcEntry.getFuncType() == TokenType.VOID_TY)? 0 : 1;
-					for (int i = 0; i < paramUpLoads.size(); i++) {
-						if (paramUpLoads.get(i).type != funcEntry.getSymbolTable().get(i + checkParamStartPos).getType())
+					// 如果函数有返回值，分配空间
+					if (funcEntry.getFuncType() != TokenType.VOID_TY)
+						instructions.add(new Instruction(Operation.STACKALLOC, (long) 1));
+					else
+						instructions.add(new Instruction(Operation.STACKALLOC, (long) 0));
+
+					// 函数调用有参数输入
+					if (peek().getTokenType() != TokenType.R_PAREN) {
+						// 在此处生成 -- 参数压入指令集
+						List<LoadUp> paramUpLoads = new ArrayList<>();
+
+						do{
+							LoadUp paramLoad = analysisE(peek());
+							paramUpLoads.add(paramLoad);
+							instructions.addAll(paramLoad.instructions);
+						}
+						while (nextIf(TokenType.COMMA) != null);
+
+						// 检查参数数量和类型
+						if (funcEntry.getParamSlotCount() != paramUpLoads.size())
 							throw new AnalyzeError(ErrorCode.FuncParamsMisMatch, peek().getStartPos());
+
+						int checkParamStartPos = (funcEntry.getFuncType() == TokenType.VOID_TY)? 0 : 1;
+						for (int i = 0; i < paramUpLoads.size(); i++) {
+							if (paramUpLoads.get(i).type != funcEntry.getSymbolTable().get(i + checkParamStartPos).getType())
+								throw new AnalyzeError(ErrorCode.FuncParamsMisMatch, peek().getStartPos());
+						}
+
+						expect(TokenType.R_PAREN);
+					} else {
+						expect(TokenType.R_PAREN);
 					}
 
-					expect(TokenType.R_PAREN);
-				} else {
-					expect(TokenType.R_PAREN);
+					// call func by funcID
+					int funcID = table.getFuncID((String) front.getValue());
+					instructions.add(new Instruction(Operation.CALL, (long) funcID));
+
+					// 上载
+					loadUp.setType(funcEntry.getFuncType());
+					loadUp.setInstructions(instructions);
+					// 函数不允许 fun() = x;的操作
+					loadUp.setConstant(true);
 				}
-
-				// call func by funcID
-				int funcID = table.getFuncID((String) front.getValue());
-				instructions.add(new Instruction(Operation.CALL, (long) funcID));
-
-				// 上载
-				loadUp.setType(funcEntry.getFuncType());
-				loadUp.setInstructions(instructions);
-				// 函数不允许 fun() = x;的操作
-				loadUp.setConstant(true);
 			}
 		}
 		else if (front.getTokenType() == TokenType.UINT_LITERAL) {
@@ -731,7 +1047,7 @@ public final class Analyser {
 		else if(front.getTokenType() == TokenType.STRING_LITERAL) {
 			// 字符串字面量只会在putstr调用中出现，语义是对应的全局常量的编号
 			Token getString = expect(TokenType.STRING_LITERAL);
-			table.addGlobalSymbol((String) getString.getValue(), TokenType.STRING_LITERAL, SymbolType.VAR, 1, getString.getStartPos(), true, true);
+			table.addGlobalSymbol((String) getString.getValue(), TokenType.STRING_LITERAL, SymbolType.STRING, 1, getString.getStartPos(), true, true);
 
 			long strOff = table.getGlobalSymbolOff((String) front.getValue());
 			instructions.add(new Instruction(Operation.PUSH, strOff));
@@ -843,7 +1159,7 @@ public final class Analyser {
 					(String) nameToken.getValue(),
 					typeToken.getTokenType(),
 					SymbolType.VAR,
-					this.deep, nameToken.getStartPos(), false, isInit);
+					this.deep, nameToken.getStartPos(), false, true);
 
 			// 当全局变量被初始化时，加入赋值生成的指令集
 			if (isInit) {
@@ -854,12 +1170,11 @@ public final class Analyser {
 				table.getGlobalInstructions().addAll(analyseEIns);
 				table.getGlobalInstructions().add(new Instruction(Operation.STORE_64));
 			}
-
 		} else {
 			table.addFuncSymbol((String) nameToken.getValue(),
 					typeToken.getTokenType(),
 					SymbolType.VAR,
-					this.deep, false, isInit,
+					this.deep, false, true,
 					nameToken.getStartPos());
 
 			// 当局部变量被初始化时，向函数内加入赋值生成的指令集
@@ -954,7 +1269,7 @@ public final class Analyser {
 	 */
 	private List<Instruction> analyseIfStmt() throws CompileError {
 		List<Instruction> instructions  = new ArrayList<>();
-		IfElse ifElse = new IfElse();
+		IfElse ifElseBlock = new IfElse();
 
 		expect(TokenType.IF_KW);
 		LoadUp condition = analysisE(peek());
@@ -968,12 +1283,13 @@ public final class Analyser {
 		List<Instruction> handle = analyseBlockStmt();
 
 		boolean isRet = false;
-		if (handle.get(handle.size() - 1).getOpt() == Operation.RET) {
+
+		if (handle.size() > 0 && handle.get(handle.size() - 1).getOpt() == Operation.RET) {
 			isRet = true;
 		}
 
 		// 加入if分支
-		ifElse.addOneIfBranch(condition.instructions, handle, isRet);
+		ifElseBlock.addOneIfBranch(condition.instructions, handle, isRet);
 
 		isRet = false;
 
@@ -988,10 +1304,10 @@ public final class Analyser {
 				condition = analysisE(peek());
 				handle = analyseBlockStmt();
 
-				if (handle.get(handle.size() - 1).getOpt() == Operation.RET) isRet = true;
+				if (handle.size() > 0 && handle.get(handle.size() - 1).getOpt() == Operation.RET) isRet = true;
 
 				// 加入if分支
-				ifElse.addOneIfBranch(condition.instructions, handle, isRet);
+				ifElseBlock.addOneIfBranch(condition.instructions, handle, isRet);
 
 				isRet = false;
 			}
@@ -999,20 +1315,20 @@ public final class Analyser {
 			else {
 				handle = analyseBlockStmt();
 
-				if (handle.get(handle.size() - 1).getOpt() == Operation.RET) {
+				if (handle.size() > 0 && handle.get(handle.size() - 1).getOpt() == Operation.RET) {
 					isRet = true;
 					finalFuncReturn = true;
 				}
 
 				// 加入else分支
-				ifElse.addOneElseBranch(handle, isRet);
+				ifElseBlock.addOneElseBranch(handle, isRet);
 
 				isRet = false;
 				break;
 			}
 		}
 
-		instructions = ifElse.generate();
+		instructions = ifElseBlock.generate();
 		return instructions;
 	}
 
@@ -1020,8 +1336,26 @@ public final class Analyser {
 		List<Instruction> instructions = new ArrayList<>();
 
 		expect(TokenType.WHILE_KW);
-		analysisE(peek());
-		analyseBlockStmt();
+		LoadUp condition = analysisE(peek());
+
+		// 类型判断
+		if (condition.type != TokenType.INT_TY && condition.type != TokenType.DOUBLE_TY && condition.type != TokenType.BOOL_TY) {
+			throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
+		}
+
+		List<Instruction> handle = analyseBlockStmt();
+
+		While whileBlock = new While();
+
+		whileBlock.setCondition(condition.instructions);
+		whileBlock.setHandle(handle);
+
+		// 如何获取当前while是否为最终ret的while
+		if (handle.size() > 0 && (this.deep + 1 == whileRetDeep) && handle.get(handle.size() - 1).getOpt() == Operation.RET) {
+			whileBlock.setRet(true);
+		}
+
+		instructions = whileBlock.generate();
 
 		return instructions;
 	}
@@ -1032,6 +1366,9 @@ public final class Analyser {
 		// 此时函数有返回值
 		funcReturn = true;
 		if (this.deep == 2) finalFuncReturn = true;
+
+		// ret deep
+		whileRetDeep = this.deep;
 
 		List<Instruction> instructions = new ArrayList<>();
 
@@ -1075,7 +1412,7 @@ public final class Analyser {
 		expect(TokenType.L_BRACE);
 
 		// 打个补丁 - 读到下一个token为空时
-		if (peek().getTokenType().ordinal() == 40)
+		if (peek().getTokenType().ordinal() == 41)
 			throw new AnalyzeError(ErrorCode.NotComplete, peek().getStartPos());
 
 		List<Instruction> instructions = new ArrayList<>();
@@ -1183,7 +1520,7 @@ public final class Analyser {
 		while (check(TokenType.LET_KW) || check(TokenType.CONST_KW) || check(TokenType.FN_KW)) {
 			// 全局定义
 			while (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) {
-				analyseDeclStmt(true);
+				table.addGlobalInstructions(analyseDeclStmt(true));
 			}
 
 			// 函数定义
@@ -1191,5 +1528,63 @@ public final class Analyser {
 				analyseFunction();
 			}
 		}
+
+		// 构建全局运行入口
+		FuncEntry mainFunc = mainFuncExist();
+		if (mainFunc == null) throw new AnalyzeError(ErrorCode.WithOutMain, new Pos(0,0));
+		else {
+			if (mainFunc.getFuncType() == TokenType.VOID_TY) {
+				table.addGlobalInstruction(new Instruction(Operation.STACKALLOC, (long) 0));
+				table.addGlobalInstruction(new Instruction(Operation.CALL, (long) table.getFuncID("main")));
+			} else {
+				table.addGlobalInstruction(new Instruction(Operation.STACKALLOC, (long) 1));
+				table.addGlobalInstruction(new Instruction(Operation.CALL, (long) table.getFuncID("main")));
+			}
+		}
+
+		FuncEntry _start = new FuncEntry("_start", TokenType.VOID_TY, 0, 0);
+		_start.setInstructions(table.getGlobalInstructions());
+		table.addStart(_start);
+		table.addGlobalSymbol("_start", TokenType.VOID_TY, SymbolType.FUNC, 1, new Pos(0,0), false, true);
+	}
+
+	/**
+	 * 是否为外部链接
+	 *
+	 * @param name
+	 * @return
+	 */
+	public boolean isOutFunc(String name) {
+		if (name.equals("getint") || name.equals("getdouble") || name.equals("getchar") || name.equals("putint") || name.equals("putdouble") || name.equals("putchar") || name.equals("putstr") || name.equals("putln")) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 获取外部函数ID
+	 *
+	 * @param name
+	 * @return
+	 */
+	public int getOutFuncID(String name) {
+		if (name.equals("getint")) return 0;
+		if (name.equals("getdouble")) return 1;
+		if (name.equals("getchar")) return 2;
+		if (name.equals("putint")) return 3;
+		if (name.equals("putdouble")) return 4;
+		if (name.equals("putchar")) return 5;
+		if (name.equals("putstr")) return 6;
+		if (name.equals("putln")) return 7;
+		return -1;
+	}
+
+	/**
+	 * 查找是否有main函数
+	 *
+	 * @return
+	 */
+	public FuncEntry mainFuncExist() {
+		return table.searchFuncInTable("main");
 	}
 }

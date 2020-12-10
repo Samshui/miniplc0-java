@@ -128,4 +128,8 @@ public class SymbolEntry {
 				.append("\tdeep:" + deep + "\n")
 				.toString();
 	}
+
+	public int isConst() {
+		return isConstant?1:0;
+	}
 }
