@@ -95,7 +95,7 @@ public class Table {
 	}
 
 	public void addStart(FuncEntry funcEntry) {
-		this.funcTable.add(funcEntry);
+		this.funcTable.add(0, funcEntry);
 	}
 
 	/**
