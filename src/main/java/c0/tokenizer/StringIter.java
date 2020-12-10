@@ -44,8 +44,8 @@ public class StringIter {
 			linesBuffer.add(scanner.nextLine() + '\n');
 		}
 
-		for (String s: linesBuffer) System.out.print(s);
-		System.exit(0);
+//		for (String s: linesBuffer) System.out.print(s);
+//		System.exit(0);
 		// todo:check read \n?
 		initialized = true;
 	}

@@ -1098,6 +1098,8 @@ public final class Analyser {
 			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt());
 			else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
 			else instructions.addAll(analyseExprStmt());
+
+			if (peek().getTokenType().ordinal() == 41) throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
 		}
 
 		return instructions;
@@ -1423,6 +1425,7 @@ public final class Analyser {
 		while (!check(TokenType.R_BRACE)) {
 			instructions.addAll(analyseStmt());
 		}
+
 		expect(TokenType.R_BRACE);
 
 		// 当前deep == 2时，表示此时处于函数内部的最外层，有返回则funcReturn应该为true
@@ -1500,6 +1503,7 @@ public final class Analyser {
 
 		// 进入该函数实体中
 		instructions.addAll(analyseBlockStmt());
+
 
 		// 退出函数体后，重置funcRet
 		funcReturn = false;
