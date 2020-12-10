@@ -1061,8 +1061,10 @@ public final class Analyser {
 			// char字面量
 			instructions.add(new Instruction(Operation.PUSH, (long) ((char) front.getValue())));
 
+			next();
+
 			// 上载
-			loadUp.setType(TokenType.CHAR_LITERAL);
+			loadUp.setType(TokenType.INT_TY);
 			loadUp.setInstructions(instructions);
 			loadUp.setConstant(true);
 		}
