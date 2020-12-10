@@ -117,29 +117,6 @@ public class OutPutBinary {
 	}
 
 	private List<Byte> String2bytes(String valueString) {
-//		List<Byte> AB = new ArrayList<>();
-//		for (int i = 0; i < valueString.length(); i++) {
-//			char ch = valueString.charAt(i);
-//			if (ch != '\\')
-//				AB.add((byte) (ch & 0xff));
-//			else {
-//				i++;
-//				ch = valueString.charAt(i);
-//				if (ch == '\\')
-//					AB.add((byte) ('\\' & 0xff));
-//				else if (ch == '\"')
-//					AB.add((byte) ('\"' & 0xff));
-//				else if (ch == '\'')
-//					AB.add((byte) ('\'' & 0xff));
-//				else if (ch == 'n')
-//					AB.add((byte) ('\n' & 0xff));
-//				else if (ch == 'r')
-//					AB.add((byte) ('\r' & 0xff));
-//				else if (ch == 't')
-//					AB.add((byte) ('\t' & 0xff));
-//			}
-//		}
-//		return AB;
 		List<Byte> AB = new ArrayList<>();
 		for (int i = 0; i < valueString.length(); i++) {
 			char ch = valueString.charAt(i);
