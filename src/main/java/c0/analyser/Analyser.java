@@ -1545,6 +1545,7 @@ public final class Analyser {
 		FuncEntry _start = new FuncEntry("_start", TokenType.VOID_TY, 0, 0);
 		_start.setInstructions(table.getGlobalInstructions());
 		table.addStart(_start);
+		table.addGlobalSymbol("main", mainFunc.getFuncType(), SymbolType.FUNC, 1, new Pos(0,0), false, true);
 		table.addGlobalSymbol("_start", TokenType.VOID_TY, SymbolType.FUNC, 1, new Pos(0,0), false, true);
 	}
 
