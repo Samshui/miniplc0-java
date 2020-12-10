@@ -340,7 +340,10 @@ public class Tokenizer {
 			if (nextCH == '\\') {
 				it.nextChar();
 
-				if ((nextCH = it.peekChar()) == '\\') storage += '\\';
+				if ((nextCH = it.peekChar()) == '\\') {
+
+					storage += '\\';
+				}
 				else if (nextCH == '\'') storage += '\'';
 				else if (nextCH == '\"') storage += '\"';
 				else if (nextCH == 'n') storage += '\n';
