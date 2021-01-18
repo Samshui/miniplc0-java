@@ -1100,7 +1100,32 @@ public final class Analyser {
 			else if (check(TokenType.IF_KW)) instructions.addAll(analyseIfStmt());
 			else if (check(TokenType.WHILE_KW)) instructions.addAll(analyseWhileStmt());
 			else if (check(TokenType.RETURN_KW)) instructions.addAll(analyseReturnStmt());
-			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt());
+			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt(false));
+			else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
+			else instructions.addAll(analyseExprStmt());
+
+			if (peek().getTokenType().ordinal() == 41) throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
+		}
+
+		return instructions;
+	}
+	private List<Instruction> analyseStmt(Boolean isWhile) throws CompileError {
+		List<Instruction> instructions = new ArrayList<>();
+
+		if (this.deep < 3 && (peek().getTokenType().equals(TokenType.BREAK_KW) || peek().getTokenType().equals(TokenType.CONTINUE_KW)))
+			throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
+
+		// 打补丁 -- 针对else前无if匹配的情况
+		if (check(TokenType.ELSE_KW)) {
+			throw new AnalyzeError(ErrorCode.IfElseNotMatch, peek().getStartPos());
+		}
+
+		while (checkMayStmt(peek())) {
+			if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) instructions.addAll(analyseDeclStmt(false));
+			else if (check(TokenType.IF_KW)) instructions.addAll(analyseIfStmt());
+			else if (check(TokenType.WHILE_KW)) instructions.addAll(analyseWhileStmt());
+			else if (check(TokenType.RETURN_KW)) instructions.addAll(analyseReturnStmt());
+			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt(false));
 			else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
 			else instructions.addAll(analyseExprStmt());
 
@@ -1287,7 +1312,7 @@ public final class Analyser {
 				condition.type != TokenType.DOUBLE_TY)
 			throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
 
-		List<Instruction> handle = analyseBlockStmt();
+		List<Instruction> handle = analyseBlockStmt(false);
 
 		boolean isRet = false;
 
@@ -1309,7 +1334,7 @@ public final class Analyser {
 				expect(TokenType.IF_KW);
 
 				condition = analysisE(peek());
-				handle = analyseBlockStmt();
+				handle = analyseBlockStmt(false);
 
 				if (handle.size() > 0 && handle.get(handle.size() - 1).getOpt() == Operation.RET) isRet = true;
 
@@ -1320,7 +1345,7 @@ public final class Analyser {
 			}
 			// if bool {} else {}
 			else {
-				handle = analyseBlockStmt();
+				handle = analyseBlockStmt(false);
 
 				if (handle.size() > 0 && handle.get(handle.size() - 1).getOpt() == Operation.RET) {
 					isRet = true;
@@ -1340,8 +1365,7 @@ public final class Analyser {
 	}
 
 	private List<Instruction> analyseWhileStmt() throws CompileError {
-		// todo -- 实现 break continue
-		// 南哥方法，把while开始的跳入跳出位置向下传入，break就跳回到跳出，continue跳回到跳入
+		// 把while开始的跳入跳出位置向下传入，break就跳回到跳出，continue跳回到跳入
 		List<Instruction> instructions = new ArrayList<>();
 
 		expect(TokenType.WHILE_KW);
@@ -1352,7 +1376,8 @@ public final class Analyser {
 			throw new AnalyzeError(ErrorCode.TypeMisMatch, peek().getStartPos());
 		}
 
-		List<Instruction> handle = analyseBlockStmt();
+		// break 和 continue 出现的地方
+		List<Instruction> handle = analyseBlockStmt(true);
 
 		While whileBlock = new While();
 
@@ -1416,8 +1441,9 @@ public final class Analyser {
 
 	/**
 	 * 代码块
+	 * @param isWhile 判断是否进入while的代码块
 	 */
-	private List<Instruction> analyseBlockStmt() throws CompileError {
+	private List<Instruction> analyseBlockStmt(Boolean isWhile) throws CompileError {
 		expect(TokenType.L_BRACE);
 
 		// 打个补丁 - 读到下一个token为空时
@@ -1430,7 +1456,8 @@ public final class Analyser {
 		this.deep ++;
 
 		while (!check(TokenType.R_BRACE)) {
-			instructions.addAll(analyseStmt());
+			if (isWhile) instructions.addAll(analyseStmt(true));
+			else instructions.addAll(analyseStmt());
 		}
 
 		expect(TokenType.R_BRACE);
@@ -1509,7 +1536,7 @@ public final class Analyser {
 		}
 
 		// 进入该函数实体中
-		instructions.addAll(analyseBlockStmt());
+		instructions.addAll(analyseBlockStmt(false));
 
 
 		// 退出函数体后，重置funcRet

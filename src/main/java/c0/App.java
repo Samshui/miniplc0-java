@@ -39,6 +39,8 @@ public class App {
 		var inputFileName = result.getString("input");
 		var outputFileName = result.getString("output");
 
+		System.out.println("filename[in]: " + inputFileName);
+
 		InputStream input;
 		if (inputFileName.equals("-")) {
 			input = System.in;
