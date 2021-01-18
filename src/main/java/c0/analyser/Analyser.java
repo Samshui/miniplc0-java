@@ -1087,6 +1087,9 @@ public final class Analyser {
 	private List<Instruction> analyseStmt() throws CompileError {
 		List<Instruction> instructions = new ArrayList<>();
 
+		if (this.deep < 3 && (peek().getTokenType().equals(TokenType.BREAK_KW) || peek().getTokenType().equals(TokenType.CONTINUE_KW)))
+			throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
+
 		// 打补丁 -- 针对else前无if匹配的情况
 		if (check(TokenType.ELSE_KW)) {
 			throw new AnalyzeError(ErrorCode.IfElseNotMatch, peek().getStartPos());
@@ -1337,6 +1340,8 @@ public final class Analyser {
 	}
 
 	private List<Instruction> analyseWhileStmt() throws CompileError {
+		// todo -- 实现 break continue
+		// 南哥方法，把while开始的跳入跳出位置向下传入，break就跳回到跳出，continue跳回到跳入
 		List<Instruction> instructions = new ArrayList<>();
 
 		expect(TokenType.WHILE_KW);
