@@ -40,6 +40,7 @@ public class App {
 		var outputFileName = result.getString("output");
 
 		System.out.println("filename[in]: " + inputFileName);
+		System.exit(2);
 
 		InputStream input;
 		if (inputFileName.equals("-")) {
