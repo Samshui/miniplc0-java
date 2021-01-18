@@ -116,7 +116,8 @@ public class Tokenizer {
 		/* uint */
 		else {
 			endPos = new Pos(it.currentPos().row, it.currentPos().col);
-			Integer int_num = new Integer(numStorage);
+			// Integer int_num = new Integer(numStorage);
+			Long int_num = new Long(numStorage);
 
 			Token token = new Token(TokenType.UINT_LITERAL, int_num, startPos, endPos);
 			return token;

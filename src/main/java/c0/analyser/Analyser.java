@@ -27,6 +27,12 @@ public final class Analyser {
 	boolean finalFuncReturn = false;
 
 	/**
+	 * 当前是否有break或continue
+	 */
+	boolean existBreak = false;
+	boolean existContinue = false;
+
+	/**
 	 * 当前偷看的 token
 	 */
 	Token peekedToken = null;
@@ -150,6 +156,28 @@ public final class Analyser {
 		return false;
 	}
 
+	/**
+	 * 强化版while STMT开头分析
+	 *
+	 * @param token
+	 * @return
+	 * @throws TokenizeError
+	 */
+	private boolean checkMayWhileStmt(Token token) throws TokenizeError {
+		if (check(TokenType.LET_KW) ||
+				check(TokenType.CONST_KW) ||
+				check(TokenType.IF_KW) ||
+				check(TokenType.WHILE_KW) ||
+				check(TokenType.RETURN_KW) ||
+				check(TokenType.L_BRACE) ||
+				check(TokenType.SEMICOLON) ||
+				check(TokenType.BREAK_KW) ||
+				check(TokenType.CONTINUE_KW) ||
+				checkMayExpr(token)) {
+			return true;
+		}
+		return false;
+	}
 
 	/**
 	 * 如果下一个 token 的类型是 tt，则前进一个 token 并返回这个 token
@@ -1021,8 +1049,8 @@ public final class Analyser {
 		else if (front.getTokenType() == TokenType.UINT_LITERAL) {
 			// int字面量
 			Token getUint = expect(TokenType.UINT_LITERAL);
-			Integer i = (Integer) getUint.getValue();
-			long iTOl = i;
+			// Integer i = (Integer) getUint.getValue();
+			long iTOl = (Long) getUint.getValue();
 			instructions.add(new Instruction(Operation.PUSH, iTOl));
 
 			// 上载
@@ -1120,19 +1148,39 @@ public final class Analyser {
 			throw new AnalyzeError(ErrorCode.IfElseNotMatch, peek().getStartPos());
 		}
 
-		while (checkMayStmt(peek())) {
+		while (checkMayWhileStmt(peek())) {
 			if (check(TokenType.LET_KW) || check(TokenType.CONST_KW)) instructions.addAll(analyseDeclStmt(false));
 			else if (check(TokenType.IF_KW)) instructions.addAll(analyseIfStmt());
 			else if (check(TokenType.WHILE_KW)) instructions.addAll(analyseWhileStmt());
 			else if (check(TokenType.RETURN_KW)) instructions.addAll(analyseReturnStmt());
 			else if (check(TokenType.L_BRACE)) instructions.addAll(analyseBlockStmt(false));
 			else if (check(TokenType.SEMICOLON)) analyseEmptyStmt();
+			else if (check(TokenType.BREAK_KW)) instructions.add(retWhileInstruction(0));
+			else if (check(TokenType.CONTINUE_KW)) instructions.add(retWhileInstruction(1));
 			else instructions.addAll(analyseExprStmt());
 
 			if (peek().getTokenType().ordinal() == 41) throw new AnalyzeError(ErrorCode.ShouldNotBeExist, peek().getStartPos());
 		}
 
 		return instructions;
+	}
+
+	/**
+	 * 关于break和continue的指令生成
+	 *
+	 * @param type
+	 * @return
+	 */
+	private Instruction retWhileInstruction(int type) throws AnalyzeError {
+		if (type == 0) {
+			this.existBreak = true;
+			return new Instruction(Operation.BR, (long) 0);
+		} else if (type == 1) {
+			this.existContinue = true;
+			return new Instruction(Operation.BR, (long) 0);
+		} else {
+			throw new AnalyzeError(ErrorCode.ShouldNotBeExist, new Pos(-1, -1));
+		}
 	}
 
 	/**
@@ -1390,6 +1438,10 @@ public final class Analyser {
 		}
 
 		instructions = whileBlock.generate();
+
+		// 结束修改exist
+		this.existBreak = false;
+		this.existContinue = false;
 
 		return instructions;
 	}
