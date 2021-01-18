@@ -18,7 +18,6 @@ import c0.tokenizer.Token;
 import c0.tokenizer.TokenType;
 import c0.tokenizer.Tokenizer;
 
-import c0.util.FileFill;
 import c0.util.OutPutBinary;
 import net.sourceforge.argparse4j.*;
 import net.sourceforge.argparse4j.impl.Arguments;
@@ -97,7 +96,6 @@ public class App {
 			// analyze
 			var analyzer = new Analyser(tokenizer);
 			List<Instruction> instructions;
-			FileFill fileFill = new FileFill();
 			try {
 				instructions = analyzer.analyse();
 				Table table = analyzer.retTable();
